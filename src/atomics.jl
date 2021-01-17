@@ -8,21 +8,21 @@ for (ityp,jtyp) ∈ [("i32", UInt32), ("i64", UInt64), ("i128", UInt128)]
         @inline function _atomic_load(ptr::Ptr{$jtyp})
             Base.llvmcall($("""
               %p = inttoptr $(ityp) %0 to $(ityp)*
-              %v = load atomic volatile $(ityp), $(ityp)* %p acquire, align $(Base.gc_alignment(jtyp))
+              %v = load atomic $(ityp), $(ityp)* %p acquire, align $(Base.gc_alignment(jtyp))
               ret $(ityp) %v
             """), $jtyp, Tuple{Ptr{$jtyp}}, ptr)
         end
         @inline function _atomic_store!(ptr::Ptr{$jtyp}, x::$jtyp)
             Base.llvmcall($("""
               %p = inttoptr $(ityp) %0 to $(ityp)*
-              store atomic volatile $(ityp) %1, $(ityp)* %p release, align $(Base.gc_alignment(jtyp))
+              store atomic $(ityp) %1, $(ityp)* %p release, align $(Base.gc_alignment(jtyp))
               ret void
             """), Cvoid, Tuple{Ptr{$jtyp}, $jtyp}, ptr, x)
         end
         @inline function _atomic_cas_cmp!(ptr::Ptr{$jtyp}, cmp::$jtyp, newval::$jtyp)
             Base.llvmcall($("""
               %p = inttoptr $(ityp) %0 to $(ityp)*
-              %c = cmpxchg volatile $(ityp)* %p, $(ityp) %1, $(ityp) %2 acq_rel acquire
+              %c = cmpxchg $(ityp)* %p, $(ityp) %1, $(ityp) %2 acq_rel acquire
               %bit = extractvalue { $ityp, i1 } %c, 1
               %bool = zext i1 %bit to i8
               ret i8 %bool
@@ -37,7 +37,7 @@ for op ∈ ["xchg", "add", "sub", "and", "nand", "or", "xor", "max", "min", "uma
             @inline function $f(ptr::Ptr{$jtyp}, x::$jtyp)
                 Base.llvmcall($("""
                   %p = inttoptr $(ityp) %0 to $(ityp)*
-                  %v = atomicrmw volatile $op $(ityp)* %p, $(ityp) %1 acq_rel
+                  %v = atomicrmw $op $(ityp)* %p, $(ityp) %1 acq_rel
                   ret $(ityp) %v
                 """), $jtyp, Tuple{Ptr{$jtyp}, $jtyp}, ptr, x)
             end
@@ -114,4 +114,25 @@ end
     _atomic_store!(p + sizeof(UInt)*(i += 1), x)
     i
 end
+
+@generated function _atomic_load(p::Ptr{UInt}, ::Type{T}, i) where {T<:Tuple}
+    q = Expr(:block, Expr(:meta,:inline))
+    tup = Expr(:tuple)
+    for (i,t) ∈ enumerate(T.parameters)
+        ln = Symbol(:l_,i)
+        push!(tup.args, ln)
+        push!(q.args, :((i,$ln) = _atomic_load(p, $t, i)))
+    end
+    push!(q.args, :(i, $tup))
+    q
+end
+
+@inline function _atomic_store!(p::Ptr{UInt}, tup::Tuple{A,B,Vararg{Any,N}}, i) where {A,B,N}
+    i = _atomic_store!(p, first(tup), i)
+    _atomic_store!(p, Base.tail(tup), i)
+end
+@inline function _atomic_store!(p::Ptr{UInt}, tup::Tuple{A}, i) where {A}
+    _atomic_store!(p, first(tup), i)
+end
+@inline _atomic_store!(p::Ptr{UInt}, tup::Tuple{}, i) = i
 
