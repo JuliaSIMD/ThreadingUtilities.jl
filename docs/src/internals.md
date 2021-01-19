@@ -5,7 +5,7 @@ CurrentModule = ThreadingUtilities
 # Internals (Private)
 
 ```@index
-Pages   = ["internal.md"]
+Pages   = ["internals.md"]
 ```
 
 ```@autodocs

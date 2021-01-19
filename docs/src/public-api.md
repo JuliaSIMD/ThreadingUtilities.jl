@@ -5,7 +5,7 @@ CurrentModule = ThreadingUtilities
 # Public API
 
 ```@index
-Pages   = ["api.md"]
+Pages   = ["public-api.md"]
 ```
 
 ```@autodocs
