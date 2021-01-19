@@ -2,6 +2,8 @@ using ThreadingUtilities
 using VectorizationBase, Aqua
 using Test
 
+@show length(ThreadingUtilities.TASKS)
+
 struct Copy{P} end
 function (::Copy{P})(p::Ptr{UInt}) where {P}
     _, (ptry,ptrx,N) = ThreadingUtilities._atomic_load(p, P, 1)
