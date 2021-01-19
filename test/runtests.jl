@@ -29,6 +29,7 @@ end
 
 @inline function launch_thread_copy!(tid, y, x)
     p = ThreadingUtilities.taskpointer(tid)
+    counter = 0
     while true
         if ThreadingUtilities._atomic_cas_cmp!(p, ThreadingUtilities.SPIN, ThreadingUtilities.STUP)
             setup_copy!(p, y, x)
@@ -41,6 +42,7 @@ end
             return
         end
         ThreadingUtilities.pause()
+        @assert (counter += 1) < 1_000_000_000
     end
 end
 

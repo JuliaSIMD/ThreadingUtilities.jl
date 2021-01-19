@@ -30,7 +30,7 @@ function __init__()
         # wait for it to sleep, to be sure
         counter = 0
         while true
-            @assert (counter += 1) < 10_000_000_000
+            @assert (counter += 1) < 1_000_000_000
             _atomic_cas_cmp!(pointer(m), WAIT, WAIT) && break
             pause()
         end

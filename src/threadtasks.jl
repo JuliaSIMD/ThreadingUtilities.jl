@@ -53,7 +53,7 @@ Base.@propagate_inbounds function __wait(tid::Int)
     while reinterpret(UInt, _atomic_max!(p, SPIN)) > reinterpret(UInt, WAIT)
         pause()
         @boundscheck begin
-            @assert (counter += 1) < 10_000_000_000
+            @assert (counter += 1) < 1_000_000_000
         end
     end
 end
