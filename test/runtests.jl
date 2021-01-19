@@ -80,12 +80,8 @@ end
 end
 
 @testset "Internals" begin
+    @test ThreadingUtilities._atomic_store!(pointer(UInt[]), (), 1) == 1
     @test ThreadingUtilities.ThreadTask() isa ThreadingUtilities.ThreadTask
-    if Int === Int64
-        @test ThreadingUtilities._atomic_store!(pointer(UInt64[]), (), Int64(1)) == 1
-    else
-        @test ThreadingUtilities._atomic_store!(pointer(UInt32[]), (), Int32(1)) == 1
-    end
 end
 
 @time @testset "Aqua" begin
