@@ -58,13 +58,13 @@ function test_copy(tid)
     z = similar(c) .= NaN;
     launch_thread_copy!(tid, x, a)
     sleep(1e-3)
-    ThreadingUtilities.__wait(1)
+    ThreadingUtilities.__wait(tid)
     launch_thread_copy!(tid, y, b)
     sleep(1e-3)
-    ThreadingUtilities.__wait(1)
+    ThreadingUtilities.__wait(tid)
     launch_thread_copy!(tid, z, c)
     sleep(1e-3)
-    ThreadingUtilities.__wait(1)
+    ThreadingUtilities.__wait(tid)
     @test a == x
     @test b == y
     @test c == z
