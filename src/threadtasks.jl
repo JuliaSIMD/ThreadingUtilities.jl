@@ -38,19 +38,23 @@ function (tt::ThreadTask)()
 end
 
 # 1-based tid, pushes into task 2-nthreads()
-function wake_thread!(tid)
+Base.@propagate_inbounds function wake_thread!(tid)
     push!(Base.Workqueues[tid+1], TASKS[tid]);
     # push!(@inbounds(Base.Workqueues[tid+1]), MULTASKS[tid]);
     ccall(:jl_wakeup_thread, Cvoid, (Int16,), tid % Int16)
 end
 
 # 1-based tid
-@inline function __wait(tid::Int)
+Base.@propagate_inbounds function __wait(tid::Int)
     p = taskpointer(tid)
     # note: based on relative values (SPIN = 0, WAIT = 1)
     # thus it should spin for as long as the task is doing anything else
+    counter = 0
     while reinterpret(UInt, _atomic_max!(p, SPIN)) > reinterpret(UInt, WAIT)
         pause()
+        @boundscheck begin
+            @assert (counter += 1) < 10_000_000_000
+        end
     end
 end
 

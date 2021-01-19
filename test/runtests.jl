@@ -2,16 +2,6 @@ using ThreadingUtilities
 using VectorizationBase, Aqua
 using Test
 
-@testset "THREADPOOL" begin
-    @test isconst(ThreadingUtilities, :THREADPOOL) # test that ThreadingUtilities.THREADPOOL is a constant
-    @test ThreadingUtilities.THREADPOOL isa Tuple
-    @test eltype(ThreadingUtilities.THREADPOOL) === ThreadingUtilities.ThreadTask
-    @test length(ThreadingUtilities.THREADPOOL) == Sys.CPU_THREADS-1
-    for i = 1:length(ThreadingUtilities.THREADPOOL)
-        ThreadingUtilities.THREADPOOL[i] isa ThreadingUtilities.ThreadTask
-    end
-end
-
 struct Copy{P} end
 function (::Copy{P})(p::Ptr{UInt}) where {P}
     _, (ptry,ptrx,N) = ThreadingUtilities._atomic_load(p, P, 1)
@@ -52,25 +42,41 @@ end
     end
 end
 
-@testset "Internals" begin
-    @test ThreadingUtilities._atomic_store!(pointer(UInt64[]), (), 1) == 1
-    @test ThreadingUtilities.ThreadTask() isa ThreadingUtilities.ThreadTask
-end
 
 @testset "ThreadingUtilities.jl" begin
     @time Aqua.test_all(ThreadingUtilities)
 
+    @testset "THREADPOOL" begin
+        @test isconst(ThreadingUtilities, :THREADPOOL) # test that ThreadingUtilities.THREADPOOL is a constant
+        @test ThreadingUtilities.THREADPOOL isa Tuple
+        @test eltype(ThreadingUtilities.THREADPOOL) === ThreadingUtilities.ThreadTask
+        @test length(ThreadingUtilities.THREADPOOL) == Sys.CPU_THREADS-1
+        for i = 1:length(ThreadingUtilities.THREADPOOL)
+            ThreadingUtilities.THREADPOOL[i] isa ThreadingUtilities.ThreadTask
+        end
+        if length(ThreadingUtilities.TASKS) > 0
+            @test @inferred(ThreadingUtilities.taskpointer(1)) isa Ptr{UInt}
+        end
+    end
+    
+    @testset "Internals" begin
+        @test ThreadingUtilities._atomic_store!(pointer(UInt64[]), (), 1) == 1
+        @test ThreadingUtilities.ThreadTask() isa ThreadingUtilities.ThreadTask
+    end
+
     if length(ThreadingUtilities.TASKS) > 0
-        x = rand(100);
-        w = rand(100);
-        y = similar(x) .= NaN;
-        z = similar(x) .= NaN;
-        launch_thread_copy!(1, y, x)
-        ThreadingUtilities.__wait(1)
-        launch_thread_copy!(1, z, w)
-        ThreadingUtilities.__wait(1)
-        @test y == x
-        @test z == w
+        @testset "Usage" begin
+            x = rand(100);
+            w = rand(100);
+            y = similar(x) .= NaN;
+            z = similar(x) .= NaN;
+            launch_thread_copy!(1, y, x)
+            ThreadingUtilities.__wait(1)
+            launch_thread_copy!(1, z, w)
+            ThreadingUtilities.__wait(1)
+            @test y == x
+            @test z == w
+        end
     end
 
 end

@@ -28,8 +28,10 @@ function __init__()
         TASKS[tid] = t
         wake_thread!(tid) # task should immediately sleep
         # wait for it to sleep, to be sure
+        counter = 0
         while !_atomic_cas_cmp!(pointer(m), WAIT, WAIT)
             pause()
+            @assert (counter += 1) < 10_000_000_000
         end
     end
 end
