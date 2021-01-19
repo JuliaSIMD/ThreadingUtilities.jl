@@ -1,4 +1,17 @@
+@info "Beginning to run the ThreadingUtilities test suite"
+flush(stdout)
+flush(stderr)
+
+@info "Attempting to import ThreadingUtilities"
+flush(stdout)
+flush(stderr)
+
 using ThreadingUtilities
+
+@info "Successfully imported ThreadingUtilities"
+flush(stdout)
+flush(stderr)
+
 using VectorizationBase, Aqua
 using Test
 
@@ -10,8 +23,6 @@ InteractiveUtils.versioninfo(stdout; verbose = true)
 @info "" Sys.CPU_THREADS
 @info "" VectorizationBase.NUM_CORES
 @info "" length(ThreadingUtilities.TASKS)
-
-@info "Beginning to run the ThreadingUtilities test suite"
 
 flush(stdout)
 flush(stderr)
