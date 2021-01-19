@@ -3,7 +3,6 @@ struct ThreadTask
     ThreadTask() = new(Base.RefValue{NTuple{32,UInt}}())
 end
 Base.pointer(tt::ThreadTask) = Base.unsafe_convert(Ptr{UInt}, pointer_from_objref(tt.memory))
-const THREADPOOL = ntuple(_ -> ThreadTask(), Val(Sys.CPU_THREADS-1))
 
 Base.@propagate_inbounds taskpointer(tid) = pointer(THREADPOOL[tid])
 
@@ -64,4 +63,3 @@ end
 #     ccall(fptr, Cvoid, ())
 
 # end
-

@@ -16,6 +16,7 @@ include("atomics.jl")
 include("threadtasks.jl")
 
 function __init__()
+    @eval const THREADPOOL = ntuple(_ -> ThreadTask(), Val(Sys.CPU_THREADS-1))
     nt = Threads.nthreads()-1
     resize!(TASKS, nt)
     for tid ∈ 1:nt
@@ -34,4 +35,3 @@ function __init__()
 end
 
 end # module
-
