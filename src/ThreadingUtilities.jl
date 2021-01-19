@@ -29,7 +29,9 @@ function __init__()
         wake_thread!(tid) # task should immediately sleep
         # wait for it to sleep, to be sure
         while !_atomic_cas_cmp!(pointer(m), WAIT, WAIT)
+            @info "beginning to pause..."
             pause()
+            @info "finished pausing"
         end
     end
 end
