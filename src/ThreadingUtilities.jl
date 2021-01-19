@@ -19,7 +19,9 @@ function __init__()
     @eval const THREADPOOL = ntuple(_ -> ThreadTask(), Val(Sys.CPU_THREADS-1))
     nt = min(Threads.nthreads(),(Sys.CPU_THREADS)::Int) - 1
     resize!(TASKS, nt)
+    @info "" nt
     for tid ∈ 1:nt
+        @info "begin" tid
         m = THREADPOOL[tid]
         GC.@preserve m _atomic_min!(pointer(m), SPIN) # set to SPIN
         t = Task(m); t.sticky = true # create and pin
@@ -33,6 +35,7 @@ function __init__()
             pause()
             @info "finished pausing"
         end
+        @info "end" tid
     end
 end
 
