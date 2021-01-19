@@ -24,7 +24,9 @@ function (tt::ThreadTask)()
                 wait_counter = 0
                 continue
             end
+            @info "beginning to pause..."
             pause()
+            @info "finished pausing"
             if (wait_counter += 1) > max_wait
                 wait_counter = 0
                 if _atomic_cas_cmp!(p, SPIN, WAIT)
@@ -50,7 +52,9 @@ end
     # note: based on relative values (SPIN = 0, WAIT = 1)
     # thus it should spin for as long as the task is doing anything else
     while reinterpret(UInt, _atomic_max!(p, SPIN)) > reinterpret(UInt, WAIT)
+        @info "beginning to pause..."
         pause()
+        @info "finished pausing"
     end
 end
 
