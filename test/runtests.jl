@@ -49,24 +49,33 @@ end
     end
 end
 
+function test_copy(tid)
+    a = rand(100);
+    b = rand(100);
+    c = rand(100);
+    x = similar(a) .= NaN;
+    y = similar(b) .= NaN;
+    z = similar(c) .= NaN;
+    launch_thread_copy!(tid, x, a)
+    sleep(1e-3)
+    ThreadingUtilities.__wait(1)
+    launch_thread_copy!(tid, y, b)
+    sleep(1e-3)
+    ThreadingUtilities.__wait(1)
+    launch_thread_copy!(tid, z, c)
+    sleep(1e-3)
+    ThreadingUtilities.__wait(1)
+    @test a == x
+    @test b == y
+    @test c == z
+end
+
 @testset "Internals" begin
     @test ThreadingUtilities._atomic_store!(pointer(UInt[]), (), 1) == 1
 end
 
+@time Aqua.test_all(ThreadingUtilities)
+
 @testset "ThreadingUtilities.jl" begin
-    @time Aqua.test_all(ThreadingUtilities)
-
-    if length(ThreadingUtilities.TASKS) > 0
-        x = rand(100);
-        w = rand(100);
-        y = similar(x) .= NaN;
-        z = similar(x) .= NaN;
-        launch_thread_copy!(1, y, x)
-        ThreadingUtilities.__wait(1)
-        launch_thread_copy!(1, z, w)
-        ThreadingUtilities.__wait(1)
-        @test y == x
-        @test z == w
-    end
-
+    foreach(test_copy, eachindex(ThreadingUtilities.TASKS))    
 end
