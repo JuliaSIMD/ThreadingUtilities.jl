@@ -15,7 +15,7 @@ function (tt::ThreadTask)()
     max_wait = 1 << 20
     wait_counter = max_wait
     GC.@preserve THREADPOOL begin
-        _atomic_min!(p, SPIN) # defensive
+        _atomic_umin!(p, SPIN) # defensive
         while true
             if _atomic_cas_cmp!(p, TASK, LOCK)
                 _call(p)
@@ -48,7 +48,7 @@ end
     p = taskpointer(tid)
     # note: based on relative values (SPIN = 0, WAIT = 1)
     # thus it should spin for as long as the task is doing anything else
-    while reinterpret(UInt, _atomic_max!(p, SPIN)) > reinterpret(UInt, WAIT)
+    while reinterpret(UInt, _atomic_umax!(p, SPIN)) > reinterpret(UInt, WAIT)
         pause()
     end
 end
