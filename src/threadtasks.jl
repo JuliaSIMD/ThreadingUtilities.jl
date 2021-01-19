@@ -24,9 +24,9 @@ function (tt::ThreadTask)()
                 wait_counter = 0
                 continue
             end
-            @info "beginning to pause..."
+            @info "threadtask beginning to pause..."
             pause()
-            @info "finished pausing"
+            @info "threadtask finished pausing"
             if (wait_counter += 1) > max_wait
                 wait_counter = 0
                 if _atomic_cas_cmp!(p, SPIN, WAIT)
