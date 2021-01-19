@@ -46,7 +46,6 @@ end
     end
 end
 
-
 @testset "ThreadingUtilities.jl" begin
     @time Aqua.test_all(ThreadingUtilities)
 
