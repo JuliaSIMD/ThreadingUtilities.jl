@@ -73,7 +73,9 @@ end
             ThreadingUtilities.wake_thread!(tid % UInt)
             return
         end
+        @info "beginning to pause..."
         ThreadingUtilities.pause()
+        @info "finished pausing..."
     end
 end
 
