@@ -2,7 +2,21 @@ using ThreadingUtilities
 using VectorizationBase, Aqua
 using Test
 
-@testset "THREADPOOL" begin
+import InteractiveUtils
+
+InteractiveUtils.versioninfo(stdout; verbose = true)
+
+@info "" Threads.nthreads()
+@info "" Sys.CPU_THREADS
+@info "" VectorizationBase.NUM_CORES
+@info "" length(ThreadingUtilities.TASKS)
+
+@info "Beginning to run the ThreadingUtilities test suite"
+
+flush(stdout)
+flush(stderr)
+
+@time @testset "THREADPOOL" begin
     @test isconst(ThreadingUtilities, :THREADPOOL) # test that ThreadingUtilities.THREADPOOL is a constant
     @test ThreadingUtilities.THREADPOOL isa Tuple
     @test eltype(ThreadingUtilities.THREADPOOL) === ThreadingUtilities.ThreadTask
@@ -53,24 +67,75 @@ end
 end
 
 @testset "Internals" begin
-    @test ThreadingUtilities._atomic_store!(pointer(UInt64[]), (), 1) == 1
     @test ThreadingUtilities.ThreadTask() isa ThreadingUtilities.ThreadTask
+    if Int === Int64
+        @test ThreadingUtilities._atomic_store!(pointer(UInt64[]), (), Int64(1)) == 1
+    else
+        @test ThreadingUtilities._atomic_store!(pointer(UInt32[]), (), Int32(1)) == 1
+    end
 end
 
+@time @testset "Aqua" begin
+    Aqua.test_all(ThreadingUtilities)
+end
+
+@info "foo 1"
+flush(stdout)
+flush(stderr)
+
 @testset "ThreadingUtilities.jl" begin
-    @time Aqua.test_all(ThreadingUtilities)
+    @info "foo 2"
+    flush(stdout)
+    flush(stderr)
 
     if length(ThreadingUtilities.TASKS) > 0
         x = rand(100);
         w = rand(100);
         y = similar(x) .= NaN;
         z = similar(x) .= NaN;
+
+        @info "foo 3"
+        flush(stdout)
+        flush(stderr)
+
         launch_thread_copy!(1, y, x)
+
+        @info "foo 4"
+        flush(stdout)
+        flush(stderr)
+
         ThreadingUtilities.__wait(1)
+
+        @info "foo 5"
+        flush(stdout)
+        flush(stderr)
+
         launch_thread_copy!(1, z, w)
+
+        @info "foo 6"
+        flush(stdout)
+        flush(stderr)
+
         ThreadingUtilities.__wait(1)
+
+        @info "foo 7"
+        flush(stdout)
+        flush(stderr)
+
         @test y == x
         @test z == w
     end
 
+    @info "foo 8"
+    flush(stdout)
+    flush(stderr)
 end
+
+@info "foo 9"
+flush(stdout)
+flush(stderr)
+
+@info "Finished running the ThreadingUtilities test suite"
+
+flush(stdout)
+flush(stderr)
