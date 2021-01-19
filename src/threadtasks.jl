@@ -1,10 +1,9 @@
 struct ThreadTask
-    memory::Base.RefValue{NTuple{32,UInt}}
-    ThreadTask() = new(Base.RefValue{NTuple{32,UInt}}())
+    p::Ptr{UInt}
 end
-Base.pointer(tt::ThreadTask) = Base.unsafe_convert(Ptr{UInt}, pointer_from_objref(tt.memory))
+Base.pointer(tt::ThreadTask) = tt.p
 
-Base.@propagate_inbounds taskpointer(tid) = pointer(THREADPOOL[tid])
+@inline taskpointer(tid) = THREADPOOLPTR[] + tid*(THREADBUFFERSIZE*sizeof(UInt))
 
 function _call(p::Ptr{UInt})
     fptr = _atomic_load(p + sizeof(UInt), Ptr{Cvoid})
@@ -13,10 +12,9 @@ end
 
 function (tt::ThreadTask)()
     p = pointer(tt)
-    memory = tt.memory
     max_wait = 1 << 20
     wait_counter = max_wait
-    GC.@preserve memory begin
+    GC.@preserve THREADPOOL begin
         _atomic_min!(p, SPIN)
         while true
             if _atomic_cas_cmp!(p, TASK, LOCK)

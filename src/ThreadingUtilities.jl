@@ -1,7 +1,7 @@
 module ThreadingUtilities
 
 using VectorizationBase:
-    pause, StaticInt, StridedPointer, offsets
+    pause, StaticInt, StridedPointer, offsets, L₁CACHE, align
 
 @enum ThreadState::UInt begin
     SPIN = 0   # 0: spinning
@@ -11,26 +11,29 @@ using VectorizationBase:
     STUP = 4   # 4: problem being setup. Any reason to have two lock flags?
 end
 const TASKS = Task[]
+const THREADBUFFERSIZE = 32
+const THREADPOOL = UInt[]
+const THREADPOOLPTR =  Ref{Ptr{UInt}}(C_NULL);
 
 include("atomics.jl")
 include("threadtasks.jl")
 
 function __init__()
-    @eval const THREADPOOL = ntuple(_ -> ThreadTask(), Val(Sys.CPU_THREADS-1))
     nt = min(Threads.nthreads(),(Sys.CPU_THREADS)::Int) - 1
+    resize!(THREADPOOL, THREADBUFFERSIZE * nt + (something(L₁CACHE.linesize,64) ÷ sizeof(UInt)) - 1)
+    THREADPOOLPTR[] = align(pointer(THREADPOOL)) - THREADBUFFERSIZE*sizeof(UInt)
     resize!(TASKS, nt)
     for tid ∈ 1:nt
-        t = Task(THREADPOOL[tid]); t.sticky = true # create and pin
+        t = Task(ThreadTask(taskpointer(tid))); t.sticky = true # create and pin
         # set to tid, we have tasks 2...nthread, from 1-based ind perspective
         ccall(:jl_set_task_tid, Cvoid, (Any, Cint), t, tid % Cint)
         TASKS[tid] = t
         wake_thread!(tid) # task should immediately sleep
     end
     for tid ∈ 1:nt
-        m = THREADPOOL[tid]
-        GC.@preserve m begin
+        GC.@preserve THREADPOOL begin
             # wait for it to sleep, to be sure
-            while !_atomic_cas_cmp!(pointer(m), WAIT, WAIT)
+            while !_atomic_cas_cmp!(taskpointer(tid), WAIT, WAIT)
                 pause()
             end
         end
