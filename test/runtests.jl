@@ -2,6 +2,16 @@ using ThreadingUtilities
 using VectorizationBase, Aqua
 using Test
 
+@testset "THREADPOOL" begin
+    @test isconst(ThreadingUtilities, :THREADPOOL) # test that ThreadingUtilities.THREADPOOL is a constant
+    @test ThreadingUtilities.THREADPOOL isa Tuple
+    @test eltype(ThreadingUtilities.THREADPOOL) === ThreadingUtilities.ThreadTask
+    @test length(ThreadingUtilities.THREADPOOL) == Sys.CPU_THREADS-1
+    for i = 1:length(ThreadingUtilities.THREADPOOL)
+        ThreadingUtilities.THREADPOOL[i] isa ThreadingUtilities.ThreadTask
+    end
+end
+
 struct Copy{P} end
 function (::Copy{P})(p::Ptr{UInt}) where {P}
     _, (ptry,ptrx,N) = ThreadingUtilities._atomic_load(p, P, 1)
@@ -39,13 +49,13 @@ end
             return
         end
         ThreadingUtilities.pause()
-    end        
+    end
 end
 
 
 @testset "ThreadingUtilities.jl" begin
     @time Aqua.test_all(ThreadingUtilities)
-    
+
     if length(ThreadingUtilities.TASKS) > 0
         x = rand(100);
         w = rand(100);
@@ -58,5 +68,5 @@ end
         @test y == x
         @test z == w
     end
-    
+
 end
