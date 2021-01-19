@@ -21,7 +21,6 @@ function __init__()
     resize!(TASKS, nt)
     for tid ∈ 1:nt
         m = THREADPOOL[tid]
-        GC.@preserve m _atomic_min!(pointer(m), SPIN) # set to SPIN
         t = Task(m); t.sticky = true # create and pin
         # set to tid, we have tasks 2...nthread, from 1-based ind perspective
         ccall(:jl_set_task_tid, Cvoid, (Any, Cint), t, tid % Cint)
