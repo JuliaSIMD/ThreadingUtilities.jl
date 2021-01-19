@@ -13,6 +13,7 @@ end
 
 function (tt::ThreadTask)()
     p = pointer(tt)
+    @assert unsafe_load(p) === reinterpret(UInt, SPIN)
     memory = tt.memory
     max_wait = 1 << 20
     wait_counter = max_wait
@@ -52,9 +53,7 @@ Base.@propagate_inbounds function __wait(tid::Int)
     counter = 0
     while reinterpret(UInt, _atomic_max!(p, SPIN)) > reinterpret(UInt, WAIT)
         pause()
-        @boundscheck begin
-            @assert (counter += 1) < 1_000_000_000
-        end
+        @boundscheck @assert (counter += 1) < 1_000_000_000
     end
 end
 
