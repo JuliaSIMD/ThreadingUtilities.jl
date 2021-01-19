@@ -53,7 +53,7 @@ end
 end
 
 @testset "Internals" begin
-    @test ThreadingUtilities._atomic_store!(pointer(UInt64[]), (), 1) == 1
+    @test ThreadingUtilities._atomic_store!(pointer(UInt[]), (), 1) == 1
     @test ThreadingUtilities.ThreadTask() isa ThreadingUtilities.ThreadTask
 end
 
