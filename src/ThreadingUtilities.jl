@@ -21,6 +21,7 @@ include("threadtasks.jl")
 function __init__()
     nt = min(Threads.nthreads(),(Sys.CPU_THREADS)::Int) - 1
     resize!(THREADPOOL, THREADBUFFERSIZE * nt + (something(L₁CACHE.linesize,64) ÷ sizeof(UInt)) - 1)
+    THREADPOOL .= 0
     resize!(TASKS, nt)
     GC.@preserve THREADPOOL begin
         THREADPOOLPTR[] = align(pointer(THREADPOOL)) - THREADBUFFERSIZE*sizeof(UInt)

@@ -80,5 +80,9 @@ end
 @time Aqua.test_all(ThreadingUtilities)
 
 @testset "ThreadingUtilities.jl" begin
+    @test all(i -> isone(unsafe_load(ThreadingUtilities.taskpointer(i))), eachindex(ThreadingUtilities.TASKS))
+    @test all(eachindex(ThreadingUtilities.TASKS)) do tid
+        ThreadingUtilities._atomic_load(ThreadingUtilities.taskpointer(tid), ThreadingUtilities.ThreadState) === ThreadingUtilities.WAIT
+    end
     foreach(test_copy, eachindex(ThreadingUtilities.TASKS))    
 end
