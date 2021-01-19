@@ -50,20 +50,23 @@ end
 end
 
 function test_copy(tid)
-    a = rand(100);
-    b = rand(100);
-    c = rand(100);
+    a = rand(100_000);
+    b = rand(100_000);
+    c = rand(100_000);
     x = similar(a) .= NaN;
     y = similar(b) .= NaN;
     z = similar(c) .= NaN;
     launch_thread_copy!(tid, x, a)
-    sleep(1e-3)
+    yield()
+    # sleep(1e-3)
     ThreadingUtilities.__wait(tid)
     launch_thread_copy!(tid, y, b)
-    sleep(1e-3)
+    yield()
+    # sleep(1e-3)
     ThreadingUtilities.__wait(tid)
     launch_thread_copy!(tid, z, c)
-    sleep(1e-3)
+    yield()
+    # sleep(1e-3)
     ThreadingUtilities.__wait(tid)
     @test a == x
     @test b == y
