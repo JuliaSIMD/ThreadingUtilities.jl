@@ -25,7 +25,7 @@ function (tt::ThreadTask)()
                 wait_counter = 0
                 continue
             end
-            @show @__LINE__, reinterpret(UInt, _atomic_max!(p, SPIN))
+            @show (@__LINE__, reinterpret(UInt, _atomic_max!(p, SPIN)))
             @info "threadtask beginning to pause..."
             pause()
             @info "threadtask finished pausing"

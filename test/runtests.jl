@@ -85,7 +85,7 @@ end
 end
 
 @time @testset "Aqua" begin
-    Aqua.test_all(ThreadingUtilities)
+    Aqua.test_all(ThreadingUtilities, stale_deps = false)
 end
 
 @info "foo 1"
