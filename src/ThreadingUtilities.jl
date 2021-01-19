@@ -32,7 +32,7 @@ function __init__()
         # wait for it to sleep, to be sure
         GC.@preserve m begin
             while !_atomic_cas_cmp!(pointer(m), WAIT, WAIT)
-                @show _atomic_max!(pointer(m), SPIN)
+                @show @__LINE__, reinterpret(UInt, _atomic_max!(pointer(m), SPIN))
                 @info "init beginning to pause..."
                 pause()
                 @info "init finished pausing"

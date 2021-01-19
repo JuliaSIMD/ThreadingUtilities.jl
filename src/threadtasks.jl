@@ -25,6 +25,7 @@ function (tt::ThreadTask)()
                 wait_counter = 0
                 continue
             end
+            @show @__LINE__, reinterpret(UInt, _atomic_max!(p, SPIN))
             @info "threadtask beginning to pause..."
             pause()
             @info "threadtask finished pausing"
@@ -53,6 +54,7 @@ end
     # note: based on relative values (SPIN = 0, WAIT = 1)
     # thus it should spin for as long as the task is doing anything else
     while reinterpret(UInt, _atomic_max!(p, SPIN)) > reinterpret(UInt, WAIT)
+        @show @__LINE__, reinterpret(UInt, _atomic_max!(p, SPIN))
         @info "beginning to pause..."
         pause()
         @info "finished pausing"
