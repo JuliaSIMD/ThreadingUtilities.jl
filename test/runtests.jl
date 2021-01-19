@@ -84,5 +84,5 @@ end
     @test all(eachindex(ThreadingUtilities.TASKS)) do tid
         ThreadingUtilities._atomic_load(ThreadingUtilities.taskpointer(tid), ThreadingUtilities.ThreadState) === ThreadingUtilities.WAIT
     end
-    foreach(test_copy, eachindex(ThreadingUtilities.TASKS))    
+    foreach(test_copy, eachindex(ThreadingUtilities.TASKS))
 end

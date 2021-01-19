@@ -1,4 +1,3 @@
-
 # TODO: Is atomic volatile really necessary?
 #       Early on my attempts weren't syncing / atomics
 #       weren't behaving atomically between threads so
@@ -135,4 +134,3 @@ end
     _atomic_store!(p, first(tup), i)
 end
 @inline _atomic_store!(p::Ptr{UInt}, tup::Tuple{}, i) = i
-
