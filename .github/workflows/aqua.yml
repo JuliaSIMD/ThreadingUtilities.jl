@@ -1,0 +1,44 @@
+name: Run Aqua.jl on ThreadingUtilities.jl
+on:
+  pull_request:
+    branches:
+      - master
+    paths-ignore:
+      - 'LICENSE.md'
+      - 'README.md'
+      - '.github/workflows/TagBot.yml'
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - 'LICENSE.md'
+      - 'README.md'
+      - '.github/workflows/TagBot.yml'
+jobs:
+  aqua:
+    timeout-minutes: 10
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - '1'
+        os:
+          - ubuntu-latest
+        threads:
+          - '5'
+        arch:
+          - x64
+    steps:
+      - uses: actions/checkout@v2
+      - uses: julia-actions/setup-julia@v1
+        with:
+          version: ${{ matrix.version }}
+          arch: ${{ matrix.arch }}
+      - run: |
+          julia --project=.ci/aqua -e '
+            using Pkg
+            Pkg.develop(PackageSpec(path=pwd()))
+            Pkg.instantiate()
+            Pkg.precompile()'
+      - run: julia --project=.ci/aqua .ci/aqua/aqua.jl

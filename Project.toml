@@ -7,14 +7,12 @@ version = "0.1.1"
 VectorizationBase = "3d5dd08c-fd9d-11e8-17fa-ed2836048c2f"
 
 [compat]
-Aqua = "0.5"
 VectorizationBase = "0.15"
 julia = "1.5"
 
 [extras]
-Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 VectorizationBase = "3d5dd08c-fd9d-11e8-17fa-ed2836048c2f"
 
 [targets]
-test = ["Aqua", "Test", "VectorizationBase"]
+test = ["Test", "VectorizationBase"]

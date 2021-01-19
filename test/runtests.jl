@@ -1,5 +1,5 @@
 using ThreadingUtilities
-using VectorizationBase, Aqua
+using VectorizationBase
 using Test
 
 @testset "THREADPOOL" begin
@@ -58,8 +58,6 @@ end
 end
 
 @testset "ThreadingUtilities.jl" begin
-    @time Aqua.test_all(ThreadingUtilities)
-
     if length(ThreadingUtilities.TASKS) > 0
         x = rand(100);
         w = rand(100);
@@ -72,5 +70,4 @@ end
         @test y == x
         @test z == w
     end
-
 end
