@@ -21,20 +21,22 @@ function __init__()
     resize!(TASKS, nt)
     @info "" nt
     for tid ∈ 1:nt
-        @info "begin" tid
-        m = THREADPOOL[tid]
-        GC.@preserve m _atomic_min!(pointer(m), SPIN) # set to SPIN
-        t = Task(m); t.sticky = true # create and pin
+        t = Task(THREADPOOL[tid]); t.sticky = true # create and pin
         # set to tid, we have tasks 2...nthread, from 1-based ind perspective
         ccall(:jl_set_task_tid, Cvoid, (Any, Cint), t, tid % Cint)
         TASKS[tid] = t
         wake_thread!(tid) # task should immediately sleep
+    end
+    for tid ∈ 1:nt
+        m = THREADPOOL[tid]
         # wait for it to sleep, to be sure
-        while !_atomic_cas_cmp!(pointer(m), WAIT, WAIT)
-            @show _atomic_max!(pointer(m), SPIN)
-            @info "init beginning to pause..."
-            pause()
-            @info "init finished pausing"
+        GC.@preserve m begin
+            while !_atomic_cas_cmp!(pointer(m), WAIT, WAIT)
+                @show _atomic_max!(pointer(m), SPIN)
+                @info "init beginning to pause..."
+                pause()
+                @info "init finished pausing"
+            end
         end
         @info "end" tid
     end
