@@ -17,7 +17,7 @@ include("threadtasks.jl")
 
 function __init__()
     @eval const THREADPOOL = ntuple(_ -> ThreadTask(), Val(Sys.CPU_THREADS-1))
-    nt = Threads.nthreads()-1
+    nt = min(Threads.nthreads(),(Sys.CPU_THREADS)::Int) - 1
     resize!(TASKS, nt)
     for tid ∈ 1:nt
         m = THREADPOOL[tid]
