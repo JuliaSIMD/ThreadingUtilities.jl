@@ -4,9 +4,8 @@ CurrentModule = ThreadingUtilities
 
 # ThreadingUtilities
 
-```@index
-```
+[ThreadingUtilities](https://github.com/chriselrod/ThreadingUtilities.jl)
+provides utilities for low overhead threading in Julia.
 
-```@autodocs
-Modules = [ThreadingUtilities]
-```
+The source code for this package is available in the
+[GitHub repository](https://github.com/chriselrod/ThreadingUtilities.jl).
