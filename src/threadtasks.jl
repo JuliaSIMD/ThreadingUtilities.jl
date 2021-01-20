@@ -6,7 +6,7 @@ Base.pointer(tt::ThreadTask) = tt.p
 @inline taskpointer(tid) = THREADPOOLPTR[] + tid*(THREADBUFFERSIZE*sizeof(UInt))
 
 function _call(p::Ptr{UInt})
-    fptr = _atomic_load(p + sizeof(UInt), Ptr{Cvoid})
+    fptr = load(p + sizeof(UInt), Ptr{Cvoid})
     ccall(fptr, Cvoid, (Ptr{UInt},), p)
 end
 
@@ -15,7 +15,6 @@ function (tt::ThreadTask)()
     max_wait = 1 << 20
     wait_counter = max_wait
     GC.@preserve THREADPOOL begin
-        _atomic_umin!(p, SPIN) # defensive
         while true
             if _atomic_cas_cmp!(p, TASK, LOCK)
                 _call(p)
@@ -48,7 +47,7 @@ end
     p = taskpointer(tid)
     # note: based on relative values (SPIN = 0, WAIT = 1)
     # thus it should spin for as long as the task is doing anything else
-    while reinterpret(UInt, _atomic_umax!(p, SPIN)) > reinterpret(UInt, WAIT)
+    while reinterpret(UInt, _atomic_load(p)) > reinterpret(UInt, WAIT)
         pause()
     end
 end

@@ -11,7 +11,7 @@ end
 
 struct Copy{P} end
 function (::Copy{P})(p::Ptr{UInt}) where {P}
-    _, (ptry,ptrx,N) = ThreadingUtilities._atomic_load(p, P, 1)
+    _, (ptry,ptrx,N) = ThreadingUtilities.load(p, P, 1)
     @simd ivdep for n ∈ 1:N
         vstore!(ptry, vload(ptrx, (n,)), (n,))
     end
@@ -28,8 +28,8 @@ function setup_copy!(p, y, x)
     py = stridedpointer(y)
     px = stridedpointer(x)
     fptr = copy_ptr(py, px)
-    offset = ThreadingUtilities._atomic_store!(p, fptr, 0)
-    ThreadingUtilities._atomic_store!(p, (py,px,N), offset)
+    offset = ThreadingUtilities.store!(p, fptr, 0)
+    ThreadingUtilities.store!(p, (py,px,N), offset)
 end
 
 @inline function launch_thread_copy!(tid, y, x)
@@ -74,7 +74,7 @@ function test_copy(tid)
 end
 
 @testset "Internals" begin
-    @test ThreadingUtilities._atomic_store!(pointer(UInt[]), (), 1) == 1
+    @test ThreadingUtilities.store!(pointer(UInt[]), (), 1) == 1
 end
 
 @time Aqua.test_all(ThreadingUtilities)
@@ -82,7 +82,7 @@ end
 @testset "ThreadingUtilities.jl" begin
     @test all(i -> isone(unsafe_load(ThreadingUtilities.taskpointer(i))), eachindex(ThreadingUtilities.TASKS))
     @test all(eachindex(ThreadingUtilities.TASKS)) do tid
-        ThreadingUtilities._atomic_load(ThreadingUtilities.taskpointer(tid), ThreadingUtilities.ThreadState) === ThreadingUtilities.WAIT
+        ThreadingUtilities.load(ThreadingUtilities.taskpointer(tid), ThreadingUtilities.ThreadState) === ThreadingUtilities.WAIT
     end
     foreach(test_copy, eachindex(ThreadingUtilities.TASKS))
 end

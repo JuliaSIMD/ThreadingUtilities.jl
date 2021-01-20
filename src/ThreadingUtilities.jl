@@ -1,7 +1,7 @@
 module ThreadingUtilities
 
 using VectorizationBase:
-    pause, StaticInt, StridedPointer, offsets, L₁CACHE, align
+    pause, StaticInt, StridedPointer, offsets, L₁CACHE, align, vload, vstore!
 
 @enum ThreadState::UInt begin
     SPIN = 0   # 0: spinning
@@ -17,6 +17,7 @@ const THREADPOOLPTR =  Ref{Ptr{UInt}}(C_NULL);
 
 include("atomics.jl")
 include("threadtasks.jl")
+include("utils.jl")
 
 function __init__()
     nt = min(Threads.nthreads(),(Sys.CPU_THREADS)::Int) - 1
@@ -35,7 +36,7 @@ function __init__()
         end
         for tid ∈ 1:nt
             # wait for it to sleep, to be sure
-            while !_atomic_cas_cmp!(taskpointer(tid), WAIT, WAIT)
+            while _atomic_load(taskpointer(tid)) ≠ reinterpret(UInt, WAIT)
                 pause()
             end
         end
