@@ -84,5 +84,16 @@ end
     @test all(eachindex(ThreadingUtilities.TASKS)) do tid
         ThreadingUtilities.load(ThreadingUtilities.taskpointer(tid), ThreadingUtilities.ThreadState) === ThreadingUtilities.WAIT
     end
+    @test all(eachindex(ThreadingUtilities.TASKS)) do tid
+        ThreadingUtilities._atomic_load(ThreadingUtilities.taskpointer(tid)) === reinterpret(UInt, ThreadingUtilities.WAIT)
+    end
     foreach(test_copy, eachindex(ThreadingUtilities.TASKS))
+
+    x = rand(UInt, 3);
+    GC.@preserve x begin
+        ThreadingUtilities._atomic_store!(pointer(x), zero(UInt))
+        @test ThreadingUtilities._atomic_xchg!(pointer(x), ThreadingUtilities.WAIT) == ThreadingUtilities.SPIN
+        @test ThreadingUtilities._atomic_umax!(pointer(x), ThreadingUtilities.STUP) == ThreadingUtilities.WAIT
+        @test ThreadingUtilities.load(pointer(x), ThreadingUtilities.ThreadState) == ThreadingUtilities.STUP
+    end
 end
