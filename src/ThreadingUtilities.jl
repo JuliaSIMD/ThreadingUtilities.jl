@@ -18,8 +18,10 @@ const THREADPOOLPTR =  Ref{Ptr{UInt}}(C_NULL);
 include("atomics.jl")
 include("threadtasks.jl")
 include("utils.jl")
+include("warnings.jl")
 
 function __init__()
+    _print_exclusivity_warning()
     nt = min(Threads.nthreads(),(Sys.CPU_THREADS)::Int) - 1
     resize!(THREADPOOL, THREADBUFFERSIZE * nt + (something(L₁CACHE.linesize,64) ÷ sizeof(UInt)) - 1)
     THREADPOOL .= 0
