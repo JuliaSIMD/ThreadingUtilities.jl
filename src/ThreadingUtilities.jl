@@ -1,7 +1,7 @@
 module ThreadingUtilities
 
 using VectorizationBase:
-    pause, StaticInt, StridedPointer, offsets, L₁CACHE, align, vload, vstore!
+    pause, StaticInt, StridedPointer, offsets, scacheline_size, align, vload, vstore!, num_threads
 
 @enum ThreadState::UInt begin
     SPIN = 0   # 0: spinning
@@ -22,8 +22,8 @@ include("warnings.jl")
 
 function __init__()
     _print_exclusivity_warning()
-    nt = min(Threads.nthreads(),(Sys.CPU_THREADS)::Int) - 1
-    resize!(THREADPOOL, THREADBUFFERSIZE * nt + (something(L₁CACHE.linesize,64) ÷ sizeof(UInt)) - 1)
+    nt = min(Threads.nthreads(),num_threads()) - 1
+    resize!(THREADPOOL, THREADBUFFERSIZE * nt + (scacheline_size() ÷ sizeof(UInt)) - 1)
     THREADPOOL .= 0
     Threads.atomic_fence() # ensure 0-initialization
     resize!(TASKS, nt)
