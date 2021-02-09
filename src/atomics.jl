@@ -2,7 +2,7 @@
 #       Early on my attempts weren't syncing / atomics
 #       weren't behaving atomically between threads so
 #       I got a bit defensive.
-for (ityp,jtyp) ∈ [("i32", UInt32), ("i64", UInt64), ("i128", UInt128)]
+for (ityp,jtyp) ∈ [("i8", UInt8), ("i16", UInt16), ("i32", UInt32), ("i64", UInt64), ("i128", UInt128)]
     @eval begin
         @inline function _atomic_load(ptr::Ptr{$jtyp})
             Base.llvmcall($("""
@@ -31,7 +31,7 @@ for (ityp,jtyp) ∈ [("i32", UInt32), ("i64", UInt64), ("i128", UInt128)]
 end
 for op ∈ ["xchg", "add", "sub", "and", "nand", "or", "xor", "max", "min", "umax", "umin"] # "fadd", "fsub"
     f = Symbol("_atomic_", op, '!')
-    for (ityp,jtyp) ∈ [("i32", UInt32), ("i64", UInt64), ("i128", UInt128)]
+    for (ityp,jtyp) ∈ [("i8", UInt8), ("i16", UInt16), ("i32", UInt32), ("i64", UInt64), ("i128", UInt128)]
         @eval begin
             @inline function $f(ptr::Ptr{$jtyp}, x::$jtyp)
                 Base.llvmcall($("""
