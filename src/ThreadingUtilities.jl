@@ -20,6 +20,24 @@ include("threadtasks.jl")
 include("utils.jl")
 include("warnings.jl")
 
+function initialize_task(tid::Int)
+    t = Task(ThreadTask(taskpointer(tid)));
+    t.sticky = true # create and pin
+    # set to tid, we have tasks 2...nthread, from 1-based ind perspective
+    ccall(:jl_set_task_tid, Cvoid, (Any, Cint), t, tid % Cint)
+    TASKS[tid] = t
+    wake_thread!(tid) # task should immediately sleep
+end
+function reinitialize_tasks!(verbose::Bool = true)
+    for (tid,t) ∈ enumerate(TASKS)
+        if istaskfailed(t)
+            verbose && dump(t)
+            _atomic_store!(taskpointer(tid), reinterpret(UInt, SPIN))
+            initialize_task(tid)
+        end
+    end
+end
+
 function __init__()
     _print_exclusivity_warning()
     nt = min(Threads.nthreads(),num_threads()) - 1
@@ -29,13 +47,7 @@ function __init__()
     resize!(TASKS, nt)
     GC.@preserve THREADPOOL begin
         THREADPOOLPTR[] = align(pointer(THREADPOOL)) - THREADBUFFERSIZE*sizeof(UInt)
-        for tid ∈ 1:nt
-            t = Task(ThreadTask(taskpointer(tid))); t.sticky = true # create and pin
-            # set to tid, we have tasks 2...nthread, from 1-based ind perspective
-            ccall(:jl_set_task_tid, Cvoid, (Any, Cint), t, tid % Cint)
-            TASKS[tid] = t
-            wake_thread!(tid) # task should immediately sleep
-        end
+        foreach(initialize_task, 1:nt)
         for tid ∈ 1:nt
             # wait for it to sleep, to be sure
             while _atomic_load(taskpointer(tid)) ≠ reinterpret(UInt, WAIT)
