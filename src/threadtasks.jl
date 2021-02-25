@@ -7,6 +7,7 @@ Base.pointer(tt::ThreadTask) = tt.p
 
 function _call(p::Ptr{UInt})
     fptr = load(p + sizeof(UInt), Ptr{Cvoid})
+    assume(fptr ≠ C_NULL)
     ccall(fptr, Cvoid, (Ptr{UInt},), p)
 end
 

@@ -1,9 +1,4 @@
-using ThreadingUtilities
-using Test
-using VectorizationBase
-
-import Aqua
-import InteractiveUtils
+include("testsetup.jl")
 
 include("test-suite-preamble.jl")
 

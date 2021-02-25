@@ -1,7 +1,7 @@
 module ThreadingUtilities
 
 using VectorizationBase:
-    pause, StaticInt, StridedPointer, offsets, cache_linesize, align, vload, vstore!, num_threads
+    pause, StaticInt, StridedPointer, offsets, cache_linesize, align, vload, vstore!, num_threads, assume
 
 @enum ThreadState::UInt begin
     SPIN = 0   # 0: spinning
