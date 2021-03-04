@@ -1,7 +1,7 @@
 module ThreadingUtilities
 
 using VectorizationBase:
-    pause, StaticInt, StridedPointer, offsets, cache_linesize, align, vload, vstore!, num_threads, assume
+    pause, StaticInt, StridedPointer, offsets, cache_linesize, align, __vload, __vstore!, num_threads, assume, False, register_size
 
 @enum ThreadState::UInt begin
     SPIN = 0   # 0: spinning
@@ -11,7 +11,7 @@ using VectorizationBase:
     STUP = 4   # 4: problem being setup. Any reason to have two lock flags?
 end
 const TASKS = Task[]
-const THREADBUFFERSIZE = 32
+const THREADBUFFERSIZE = 64
 const THREADPOOL = UInt[]
 const THREADPOOLPTR =  Ref{Ptr{UInt}}(C_NULL);
 

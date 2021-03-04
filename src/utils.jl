@@ -1,10 +1,24 @@
 # To add support for loading/storing...
-@inline function load(p::Ptr{UInt}, ::Type{T}) where {T}
-    reinterpret(T, vload(p))
+@inline function load(p::Ptr{UInt}, ::Type{T}) where {T<:Ptr}
+    reinterpret(T, __vload(p, False(), register_size()))
 end
-@inline function store!(p::Ptr{UInt}, x)
-    vstore!(p, reinterpret(UInt, x))
+@inline function load(p::Ptr{UInt32}, ::Type{T}) where {T<:Union{UInt32,Int32,Float32}}
+    reinterpret(T, __vload(p, False(), register_size()))
 end
+@inline function load(p::Ptr{UInt64}, ::Type{T}) where {T<:Union{UInt64,Int64,Float64}}
+    reinterpret(T, __vload(p, False(), register_size()))
+end
+@inline load(p::Ptr{UInt}, ::Type{T}) where {T} = unsafe_load(Base.unsafe_convert(Ptr{T}, p))
+@inline function store!(p::Ptr{UInt}, x::T) where {T <: Ptr}
+    __vstore!(p, reinterpret(UInt, x), False(), False(), False(), register_size())
+end
+@inline function store!(p::Ptr{UInt32}, x::T) where {T <: Union{UInt32,Int32,Float32}}
+    __vstore!(p, reinterpret(UInt, x), False(), False(), False(), register_size())
+end
+@inline function store!(p::Ptr{UInt64}, x::T) where {T <: Union{UInt64,Int64,Float64}}
+    __vstore!(p, reinterpret(UInt, x), False(), False(), False(), register_size())
+end
+@inline store!(p::Ptr{UInt}, x::T) where {T} = (unsafe_store!(Base.unsafe_convert(Ptr{T}, p), x); nothing)
 
 @inline load(p::Ptr{UInt}, ::Type{StaticInt{N}}, i) where {N} = i, StaticInt{N}()
 @inline store!(p::Ptr{UInt}, ::StaticInt, i) = i
@@ -53,12 +67,11 @@ end
 end
 
 @inline function load(p::Ptr{UInt}, ::Type{T}, i) where {T}
-    i += 1
-    i, load(p + i * sizeof(UInt), T)
+    i + sizeof(T), load(p + i, T)
 end
 @inline function store!(p::Ptr{UInt}, x, i)
-    store!(p + sizeof(UInt)*(i += 1), x)
-    i
+    store!(p + i, x)
+    i + sizeof(x)
 end
 
 @generated function load(p::Ptr{UInt}, ::Type{T}, i) where {T<:Tuple}
@@ -81,4 +94,5 @@ end
     store!(p, first(tup), i)
 end
 @inline store!(p::Ptr{UInt}, tup::Tuple{}, i) = i
+@inline store!(p::Ptr{UInt}, tup::Nothing, i) = i
 

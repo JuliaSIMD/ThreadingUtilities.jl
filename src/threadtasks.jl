@@ -44,8 +44,8 @@ function wake_thread!(tid)
 end
 
 # 1-based tid
-@inline function __wait(tid)
-    p = taskpointer(tid)
+@inline __wait(tid::Integer) = __wait(taskpointer(tid))
+@inline function __wait(p::Ptr{UInt})
     # note: based on relative values (SPIN = 0, WAIT = 1)
     # thus it should spin for as long as the task is doing anything else
     while reinterpret(UInt, _atomic_load(p)) > reinterpret(UInt, WAIT)

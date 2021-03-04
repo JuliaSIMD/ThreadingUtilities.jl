@@ -1,6 +1,6 @@
 struct Copy{P} end
 function (::Copy{P})(p::Ptr{UInt}) where {P}
-    _, (ptry,ptrx,N) = ThreadingUtilities.load(p, P, 1)
+    _, (ptry,ptrx,N) = ThreadingUtilities.load(p, P, 2*sizeof(UInt))
     N > 0 || throw("This function throws if N == 0 for testing purposes.")
     @simd ivdep for n ∈ 1:N
         vstore!(ptry, vload(ptrx, (n,)), (n,))
@@ -18,7 +18,7 @@ function setup_copy!(p, y, x)
     py = stridedpointer(y)
     px = stridedpointer(x)
     fptr = copy_ptr(py, px)
-    offset = ThreadingUtilities.store!(p, fptr, 0)
+    offset = ThreadingUtilities.store!(p, fptr, sizeof(UInt))
     ThreadingUtilities.store!(p, (py,px,N), offset)
 end
 
@@ -46,21 +46,23 @@ function test_copy(tid, N = 100_000)
     x = similar(a) .= NaN;
     y = similar(b) .= NaN;
     z = similar(c) .= NaN;
-    launch_thread_copy!(tid, x, a)
-    yield()
-    # sleep(1e-3)
-    ThreadingUtilities.__wait(tid)
-    launch_thread_copy!(tid, y, b)
-    yield()
-    # sleep(1e-3)
-    ThreadingUtilities.__wait(tid)
-    launch_thread_copy!(tid, z, c)
-    yield()
-    # sleep(1e-3)
-    ThreadingUtilities.__wait(tid)
-    @test a == x
-    @test b == y
-    @test c == z
+    GC.@preserve a b c x y z begin
+        launch_thread_copy!(tid, x, a)
+        yield()
+        # sleep(1e-3)
+        ThreadingUtilities.__wait(tid)
+        launch_thread_copy!(tid, y, b)
+        yield()
+        # sleep(1e-3)
+        ThreadingUtilities.__wait(tid)
+        launch_thread_copy!(tid, z, c)
+        yield()
+        # sleep(1e-3)
+        ThreadingUtilities.__wait(tid)
+        @test a == x
+        @test b == y
+        @test c == z
+    end
 end
 
 @testset "ThreadingUtilities.jl" begin
