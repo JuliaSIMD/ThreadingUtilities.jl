@@ -1,17 +1,29 @@
 # To add support for loading/storing...
 @inline function load(p::Ptr{UInt}, ::Type{T}) where {T<:NativeTypes}
-    __vload(reinterpret(Core.LLVMPtr{T,0}, p), False(), register_size())
+    __vload(Base.unsafe_convert(Ptr{T}, p), False(), register_size())
 end
 @inline function load(p::Ptr{UInt}, ::Type{T}) where {T<:Union{Ptr,Core.LLVMPtr}}
-    reinterpret(T, __vload(reinterpret(Core.LLVMPtr{UInt,0}, p), False(), register_size()))
+    reinterpret(T, __vload(p, False(), register_size()))
 end
+# @inline function load(p::Ptr{UInt}, ::Type{T}) where {T<:NativeTypes}
+#     __vload(reinterpret(Core.LLVMPtr{T,0}, p), False(), register_size())
+# end
+# @inline function load(p::Ptr{UInt}, ::Type{T}) where {T<:Union{Ptr,Core.LLVMPtr}}
+#     reinterpret(T, __vload(reinterpret(Core.LLVMPtr{UInt,0}, p), False(), register_size()))
+# end
 @inline load(p::Ptr{UInt}, ::Type{T}) where {T} = unsafe_load(Base.unsafe_convert(Ptr{T}, p))
 @inline function store!(p::Ptr{UInt}, x::T) where {T <: Union{Ptr,Core.LLVMPtr}}
-    __vstore!(reinterpret(Core.LLVMPtr{UInt,0}, p), reinterpret(UInt, x), False(), False(), False(), register_size())
+    __vstore!(p, reinterpret(UInt, x), False(), False(), False(), register_size())
 end
 @inline function store!(p::Ptr{UInt}, x::T) where {T <: NativeTypes}
-    __vstore!(reinterpret(Core.LLVMPtr{T,0}, p), x, False(), False(), False(), register_size())
+    __vstore!(Base.unsafe_convert(Ptr{T}, p), x, False(), False(), False(), register_size())
 end
+# @inline function store!(p::Ptr{UInt}, x::T) where {T <: Union{Ptr,Core.LLVMPtr}}
+#     __vstore!(reinterpret(Core.LLVMPtr{UInt,0}, p), reinterpret(UInt, x), False(), False(), False(), register_size())
+# end
+# @inline function store!(p::Ptr{UInt}, x::T) where {T <: NativeTypes}
+#     __vstore!(reinterpret(Core.LLVMPtr{T,0}, p), x, False(), False(), False(), register_size())
+# end
 @inline store!(p::Ptr{UInt}, x::T) where {T} = (unsafe_store!(Base.unsafe_convert(Ptr{T}, p), x); nothing)
 
 @inline load(p::Ptr{UInt}, ::Type{StaticInt{N}}, i) where {N} = i, StaticInt{N}()
