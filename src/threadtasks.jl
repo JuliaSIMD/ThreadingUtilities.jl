@@ -19,7 +19,7 @@ function (tt::ThreadTask)()
         while true
             if _atomic_cas_cmp!(p, TASK, LOCK)
                 _call(p)
-                @assert _atomic_cas_cmp!(p, LOCK, SPIN)
+                _atomic_cas_cmp!(p, LOCK, SPIN)
                 wait_counter = 0
                 continue
             end
@@ -29,7 +29,7 @@ function (tt::ThreadTask)()
                 if _atomic_cas_cmp!(p, SPIN, WAIT)
                     wait()
                     _call(p)
-                    @assert _atomic_cas_cmp!(p, LOCK, SPIN)
+                    _atomic_cas_cmp!(p, LOCK, SPIN)
                 end
             end
         end
@@ -38,8 +38,12 @@ end
 
 # 1-based tid, pushes into task 2-nthreads()
 function wake_thread!(tid)
-    push!(Base.Workqueues[tid+1], TASKS[tid]);
-    # push!(@inbounds(Base.Workqueues[tid+1]), MULTASKS[tid]);
+    assume(length(Base.Workqueues) > tid)
+    assume(length(TASKS) ≥ (tid))
+    assume(isassigned(Base.Workqueues, tid+1))
+    @inbounds workqueue = Base.Workqueues[tid+1]
+    @inbounds task = TASKS[tid]
+    push!(workqueue, task)
     ccall(:jl_wakeup_thread, Cvoid, (Int16,), tid % Int16)
 end
 

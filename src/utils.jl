@@ -1,22 +1,16 @@
 # To add support for loading/storing...
-@inline function load(p::Ptr{UInt}, ::Type{T}) where {T<:Ptr}
-    reinterpret(T, __vload(p, False(), register_size()))
+@inline function load(p::Ptr{UInt}, ::Type{T}) where {T<:NativeTypes}
+    __vload(reinterpret(Core.LLVMPtr{T,0}, p), False(), register_size())
 end
-@inline function load(p::Ptr{UInt32}, ::Type{T}) where {T<:Union{UInt32,Int32,Float32}}
-    reinterpret(T, __vload(p, False(), register_size()))
-end
-@inline function load(p::Ptr{UInt64}, ::Type{T}) where {T<:Union{UInt64,Int64,Float64}}
-    reinterpret(T, __vload(p, False(), register_size()))
+@inline function load(p::Ptr{UInt}, ::Type{T}) where {T<:Union{Ptr,Core.LLVMPtr}}
+    reinterpret(T, __vload(reinterpret(Core.LLVMPtr{UInt,0}, p), False(), register_size()))
 end
 @inline load(p::Ptr{UInt}, ::Type{T}) where {T} = unsafe_load(Base.unsafe_convert(Ptr{T}, p))
-@inline function store!(p::Ptr{UInt}, x::T) where {T <: Ptr}
-    __vstore!(p, reinterpret(UInt, x), False(), False(), False(), register_size())
+@inline function store!(p::Ptr{UInt}, x::T) where {T <: Union{Ptr,Core.LLVMPtr}}
+    __vstore!(reinterpret(Core.LLVMPtr{UInt,0}, p), reinterpret(UInt, x), False(), False(), False(), register_size())
 end
-@inline function store!(p::Ptr{UInt32}, x::T) where {T <: Union{UInt32,Int32,Float32}}
-    __vstore!(p, reinterpret(UInt, x), False(), False(), False(), register_size())
-end
-@inline function store!(p::Ptr{UInt64}, x::T) where {T <: Union{UInt64,Int64,Float64}}
-    __vstore!(p, reinterpret(UInt, x), False(), False(), False(), register_size())
+@inline function store!(p::Ptr{UInt}, x::T) where {T <: NativeTypes}
+    __vstore!(reinterpret(Core.LLVMPtr{T,0}, p), x, False(), False(), False(), register_size())
 end
 @inline store!(p::Ptr{UInt}, x::T) where {T} = (unsafe_store!(Base.unsafe_convert(Ptr{T}, p), x); nothing)
 
