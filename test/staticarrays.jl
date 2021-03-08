@@ -70,11 +70,11 @@ mul_svector_threads_v2(a, b, c) = mul_svector_threads(launch_thread_mul_svector_
     c = @SVector rand(16);
     w1,x1,y1,z1 = mul_svector_threads_v1(a, b, c)
     w2,x2,y2,z2 = mul_svector_threads_v2(a, b, c)
+    @test iszero(@allocated mul_svector_threads_v1(a, b, c))
+    @test iszero(@allocated mul_svector_threads_v2(a, b, c))
     @test w1 == w2 == a*2.7
     @test x1 == x2 == b*2.7
     @test y1 == y2 == c*2.7
     @test z1 ≈ z2 ≈ muladd(2.7, a, b)
-    @test iszero(@allocated mul_svector_threads_v1(a, b, c))
-    @test iszero(@allocated mul_svector_threads_v2(a, b, c))
 end
 
