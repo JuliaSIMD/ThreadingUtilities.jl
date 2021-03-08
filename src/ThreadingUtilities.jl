@@ -40,7 +40,7 @@ end
 
 function __init__()
     _print_exclusivity_warning()
-    nt = min(Threads.nthreads(),num_threads()) - 1
+    nt = min(Threads.nthreads(),(Sys.CPU_THREADS)::Int) - 1
     resize!(THREADPOOL, THREADBUFFERSIZE * nt + (cache_linesize() ÷ sizeof(UInt)) - 1)
     THREADPOOL .= 0
     Threads.atomic_fence() # ensure 0-initialization
