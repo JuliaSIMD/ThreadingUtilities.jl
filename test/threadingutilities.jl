@@ -1,6 +1,6 @@
 struct Copy{P} end
 function (::Copy{P})(p::Ptr{UInt}) where {P}
-    _, (ptry,ptrx,N) = ThreadingUtilities.load(p, P, 1)
+    _, (ptry,ptrx,N) = ThreadingUtilities.load(p, P, 2*sizeof(UInt))
     N > 0 || throw("This function throws if N == 0 for testing purposes.")
     @simd ivdep for n ∈ 1:N
         vstore!(ptry, vload(ptrx, (n,)), (n,))
@@ -18,7 +18,7 @@ function setup_copy!(p, y, x)
     py = stridedpointer(y)
     px = stridedpointer(x)
     fptr = copy_ptr(py, px)
-    offset = ThreadingUtilities.store!(p, fptr, 0)
+    offset = ThreadingUtilities.store!(p, fptr, sizeof(UInt))
     ThreadingUtilities.store!(p, (py,px,N), offset)
 end
 
