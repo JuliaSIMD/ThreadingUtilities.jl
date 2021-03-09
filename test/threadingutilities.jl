@@ -46,18 +46,17 @@ function test_copy(tid, N = 100_000)
     x = similar(a) .= NaN;
     y = similar(b) .= NaN;
     z = similar(c) .= NaN;
-    launch_thread_copy!(tid, x, a)
-    yield()
-    # sleep(1e-3)
-    ThreadingUtilities.__wait(tid)
-    launch_thread_copy!(tid, y, b)
-    yield()
-    # sleep(1e-3)
-    ThreadingUtilities.__wait(tid)
-    launch_thread_copy!(tid, z, c)
-    yield()
-    # sleep(1e-3)
-    ThreadingUtilities.__wait(tid)
+    GC.@preserve a b c x y z begin
+        launch_thread_copy!(tid, x, a)
+        yield()
+        ThreadingUtilities.__wait(tid)
+        launch_thread_copy!(tid, y, b)
+        yield()
+        ThreadingUtilities.__wait(tid)
+        launch_thread_copy!(tid, z, c)
+        yield()
+        ThreadingUtilities.__wait(tid)
+    end
     @test a == x
     @test b == y
     @test c == z
@@ -72,7 +71,7 @@ end
         ThreadingUtilities._atomic_load(ThreadingUtilities.taskpointer(tid)) === reinterpret(UInt, ThreadingUtilities.WAIT)
     end
     foreach(test_copy, eachindex(ThreadingUtilities.TASKS))
-
+    
     x = rand(UInt, 3);
     GC.@preserve x begin
         ThreadingUtilities._atomic_store!(pointer(x), zero(UInt))
@@ -80,7 +79,6 @@ end
         @test ThreadingUtilities._atomic_umax!(pointer(x), ThreadingUtilities.STUP) == ThreadingUtilities.WAIT
         @test ThreadingUtilities.load(pointer(x), ThreadingUtilities.ThreadState) == ThreadingUtilities.STUP
     end
-
     for tid ∈ eachindex(ThreadingUtilities.TASKS)
         launch_thread_copy!(tid, Float64[], Float64[])
     end

@@ -11,7 +11,7 @@ using VectorizationBase:
     STUP = 4   # 4: problem being setup. Any reason to have two lock flags?
 end
 const TASKS = Task[]
-const THREADBUFFERSIZE = 64
+const THREADBUFFERSIZE = 512
 const THREADPOOL = UInt[]
 const THREADPOOLPTR =  Ref{Ptr{UInt}}(C_NULL);
 
@@ -41,17 +41,18 @@ end
 function __init__()
     _print_exclusivity_warning()
     nt = min(Threads.nthreads(),(Sys.CPU_THREADS)::Int) - 1
-    resize!(THREADPOOL, THREADBUFFERSIZE * nt + (cache_linesize() ÷ sizeof(UInt)) - 1)
+    resize!(THREADPOOL, (THREADBUFFERSIZE ÷ sizeof(UInt)) * nt + (cache_linesize() ÷ sizeof(UInt)) - 1)
     THREADPOOL .= 0
     Threads.atomic_fence() # ensure 0-initialization
     resize!(TASKS, nt)
     GC.@preserve THREADPOOL begin
-        THREADPOOLPTR[] = align(pointer(THREADPOOL)) - THREADBUFFERSIZE*sizeof(UInt)
+        THREADPOOLPTR[] = align(pointer(THREADPOOL)) - THREADBUFFERSIZE
         foreach(initialize_task, 1:nt)
         for tid ∈ 1:nt
             # wait for it to sleep, to be sure
             while _atomic_load(taskpointer(tid)) ≠ reinterpret(UInt, WAIT)
-                pause()
+                yield()
+                # pause()
             end
         end
     end
