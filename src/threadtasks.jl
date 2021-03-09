@@ -3,32 +3,33 @@ struct ThreadTask
 end
 Base.pointer(tt::ThreadTask) = tt.p
 
-@inline taskpointer(tid) = THREADPOOLPTR[] + tid*(THREADBUFFERSIZE*sizeof(UInt))
+@inline taskpointer(tid) = THREADPOOLPTR[] + tid*THREADBUFFERSIZE
 
 function _call(p::Ptr{UInt})
     fptr = load(p + sizeof(UInt), Ptr{Cvoid})
+    assume(fptr ≠ C_NULL)
     ccall(fptr, Cvoid, (Ptr{UInt},), p)
 end
 
 function (tt::ThreadTask)()
     p = pointer(tt)
-    max_wait = 1 << 20
+    max_wait = one(UInt32) << 20
     wait_counter = max_wait
     GC.@preserve THREADPOOL begin
         while true
             if _atomic_cas_cmp!(p, TASK, LOCK)
                 _call(p)
-                @assert _atomic_cas_cmp!(p, LOCK, SPIN)
-                wait_counter = 0
+                _atomic_cas_cmp!(p, LOCK, SPIN)
+                wait_counter = zero(UInt32)
                 continue
             end
             pause()
-            if (wait_counter += 1) > max_wait
-                wait_counter = 0
+            if (wait_counter += one(UInt32)) > max_wait
+                wait_counter = zero(UInt32)
                 if _atomic_cas_cmp!(p, SPIN, WAIT)
                     wait()
                     _call(p)
-                    @assert _atomic_cas_cmp!(p, LOCK, SPIN)
+                    _atomic_cas_cmp!(p, LOCK, SPIN)
                 end
             end
         end
@@ -37,16 +38,21 @@ end
 
 # 1-based tid, pushes into task 2-nthreads()
 function wake_thread!(tid)
-    push!(Base.Workqueues[tid+1], TASKS[tid]);
-    # push!(@inbounds(Base.Workqueues[tid+1]), MULTASKS[tid]);
+    assume(length(Base.Workqueues) > tid)
+    assume(length(TASKS) ≥ (tid))
+    assume(isassigned(Base.Workqueues, tid+1))
+    @inbounds workqueue = Base.Workqueues[tid+1]
+    @inbounds task = TASKS[tid]
+    push!(workqueue, task)
     ccall(:jl_wakeup_thread, Cvoid, (Int16,), tid % Int16)
 end
 
 # 1-based tid
-@inline function __wait(tid)
-    p = taskpointer(tid)
+@inline __wait(tid::Integer) = __wait(taskpointer(tid))
+@inline function __wait(p::Ptr{UInt})
     # note: based on relative values (SPIN = 0, WAIT = 1)
     # thus it should spin for as long as the task is doing anything else
+    # while @show(stacktrace(), reinterpret(UInt, _atomic_load(p))) > reinterpret(UInt, WAIT)
     while reinterpret(UInt, _atomic_load(p)) > reinterpret(UInt, WAIT)
         pause()
     end

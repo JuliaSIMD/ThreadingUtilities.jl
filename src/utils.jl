@@ -1,10 +1,30 @@
 # To add support for loading/storing...
-@inline function load(p::Ptr{UInt}, ::Type{T}) where {T}
-    reinterpret(T, vload(p))
+@inline function load(p::Ptr{UInt}, ::Type{T}) where {T<:NativeTypes}
+    __vload(Base.unsafe_convert(Ptr{T}, p), False(), register_size())
 end
-@inline function store!(p::Ptr{UInt}, x)
-    vstore!(p, reinterpret(UInt, x))
+@inline function load(p::Ptr{UInt}, ::Type{T}) where {T<:Union{Ptr,Core.LLVMPtr}}
+    reinterpret(T, __vload(p, False(), register_size()))
 end
+# @inline function load(p::Ptr{UInt}, ::Type{T}) where {T<:NativeTypes}
+#     __vload(reinterpret(Core.LLVMPtr{T,0}, p), False(), register_size())
+# end
+# @inline function load(p::Ptr{UInt}, ::Type{T}) where {T<:Union{Ptr,Core.LLVMPtr}}
+#     reinterpret(T, __vload(reinterpret(Core.LLVMPtr{UInt,0}, p), False(), register_size()))
+# end
+@inline load(p::Ptr{UInt}, ::Type{T}) where {T} = unsafe_load(Base.unsafe_convert(Ptr{T}, p))
+@inline function store!(p::Ptr{UInt}, x::T) where {T <: Union{Ptr,Core.LLVMPtr}}
+    __vstore!(p, reinterpret(UInt, x), False(), False(), False(), register_size())
+end
+@inline function store!(p::Ptr{UInt}, x::T) where {T <: NativeTypes}
+    __vstore!(Base.unsafe_convert(Ptr{T}, p), x, False(), False(), False(), register_size())
+end
+# @inline function store!(p::Ptr{UInt}, x::T) where {T <: Union{Ptr,Core.LLVMPtr}}
+#     __vstore!(reinterpret(Core.LLVMPtr{UInt,0}, p), reinterpret(UInt, x), False(), False(), False(), register_size())
+# end
+# @inline function store!(p::Ptr{UInt}, x::T) where {T <: NativeTypes}
+#     __vstore!(reinterpret(Core.LLVMPtr{T,0}, p), x, False(), False(), False(), register_size())
+# end
+@inline store!(p::Ptr{UInt}, x::T) where {T} = (unsafe_store!(Base.unsafe_convert(Ptr{T}, p), x); nothing)
 
 @inline load(p::Ptr{UInt}, ::Type{StaticInt{N}}, i) where {N} = i, StaticInt{N}()
 @inline store!(p::Ptr{UInt}, ::StaticInt, i) = i
@@ -53,15 +73,15 @@ end
 end
 
 @inline function load(p::Ptr{UInt}, ::Type{T}, i) where {T}
-    i += 1
-    i, load(p + i * sizeof(UInt), T)
+    i + sizeof(T), load(p + i, T)
 end
 @inline function store!(p::Ptr{UInt}, x, i)
-    store!(p + sizeof(UInt)*(i += 1), x)
-    i
+    store!(p + i, x)
+    i + sizeof(x)
 end
 
 @generated function load(p::Ptr{UInt}, ::Type{T}, i) where {T<:Tuple}
+    isbitstype(T) || return :(i + $(sizeof(T)), load(p + i, $T))
     q = Expr(:block, Expr(:meta,:inline))
     tup = Expr(:tuple)
     for (i,t) ∈ enumerate(T.parameters)
@@ -72,13 +92,14 @@ end
     push!(q.args, :(i, $tup))
     q
 end
-
-@inline function store!(p::Ptr{UInt}, tup::Tuple{A,B,Vararg{Any,N}}, i) where {A,B,N}
+@generated store!(p::Ptr{UInt}, tup::T, i) where {T<:Tuple} = isbitstype(T) ? :(_store!(p, tup, i)) : :(store!(p+i, tup); i + sizeof(tup))
+@inline function _store!(p::Ptr{UInt}, tup::Tuple{A,B,Vararg{Any,N}}, i) where {A,B,N}
     i = store!(p, first(tup), i)
-    store!(p, Base.tail(tup), i)
+    _store!(p, Base.tail(tup), i)
 end
-@inline function store!(p::Ptr{UInt}, tup::Tuple{A}, i) where {A}
+@inline function _store!(p::Ptr{UInt}, tup::Tuple{A}, i) where {A}
     store!(p, first(tup), i)
 end
 @inline store!(p::Ptr{UInt}, tup::Tuple{}, i) = i
+@inline store!(p::Ptr{UInt}, tup::Nothing, i) = i
 
