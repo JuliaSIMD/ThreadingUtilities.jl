@@ -4,11 +4,11 @@ using Documenter
 makedocs(;
     modules=[ThreadingUtilities],
     authors="Chris Elrod <elrodc@gmail.com> and contributors",
-    repo="https://github.com/chriselrod/ThreadingUtilities.jl/blob/{commit}{path}#L{line}",
+    repo="https://github.com/JuliaSIMD/ThreadingUtilities.jl/blob/{commit}{path}#L{line}",
     sitename="ThreadingUtilities.jl",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
-        canonical="https://chriselrod.github.io/ThreadingUtilities.jl",
+        canonical="https://JuliaSIMD.github.io/ThreadingUtilities.jl",
         assets=String[],
     ),
     pages=[
@@ -20,5 +20,5 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/chriselrod/ThreadingUtilities.jl",
+    repo="github.com/JuliaSIMD/ThreadingUtilities.jl",
 )
