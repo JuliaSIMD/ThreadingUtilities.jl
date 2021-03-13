@@ -10,6 +10,13 @@ function _call(p::Ptr{UInt})
     assume(fptr ≠ C_NULL)
     ccall(fptr, Cvoid, (Ptr{UInt},), p)
 end
+@inline function launch(f::F, tid::Integer, args::Vararg{Any,K}) where {F,K}
+    p = taskpointer(tid)
+    f(p, args...)
+    state = _atomic_xchg!(p, TASK)
+    state == WAIT && wake_thread!(tid % Int)
+    return nothing
+end
 
 function (tt::ThreadTask)()
     p = pointer(tt)
@@ -17,9 +24,9 @@ function (tt::ThreadTask)()
     wait_counter = max_wait
     GC.@preserve THREADPOOL begin
         while true
-            if _atomic_cas_cmp!(p, TASK, LOCK)
+            if _atomic_state(p) == TASK
                 _call(p)
-                _atomic_cas_cmp!(p, LOCK, SPIN)
+                _atomic_store!(p, SPIN)
                 wait_counter = zero(UInt32)
                 continue
             end
@@ -27,9 +34,9 @@ function (tt::ThreadTask)()
             if (wait_counter += one(UInt32)) > max_wait
                 wait_counter = zero(UInt32)
                 if _atomic_cas_cmp!(p, SPIN, WAIT)
-                    wait()
+                    Base.wait()
                     _call(p)
-                    _atomic_cas_cmp!(p, LOCK, SPIN)
+                    _atomic_cas_cmp!(p, TASK, SPIN)
                 end
             end
         end
@@ -37,23 +44,23 @@ function (tt::ThreadTask)()
 end
 
 # 1-based tid, pushes into task 2-nthreads()
-function wake_thread!(tid)
-    assume(length(Base.Workqueues) > tid)
-    assume(length(TASKS) ≥ (tid))
-    assume(isassigned(Base.Workqueues, tid+1))
-    @inbounds workqueue = Base.Workqueues[tid+1]
-    @inbounds task = TASKS[tid]
-    push!(workqueue, task)
+# function wake_thread!(tid::T) where {T <: Unsigned}
+function wake_thread!(tid::T) where {T <: Integer}
+    tidp1 = tid + one(tid)
+    assume(unsigned(length(Base.Workqueues)) > unsigned(tid))
+    assume(unsigned(length(TASKS)) > unsigned(tidp1))
+    @inbounds push!(Base.Workqueues[tidp1], TASKS[tid])
     ccall(:jl_wakeup_thread, Cvoid, (Int16,), tid % Int16)
 end
 
 # 1-based tid
-@inline __wait(tid::Integer) = __wait(taskpointer(tid))
-@inline function __wait(p::Ptr{UInt})
+@inline wait(tid::Integer) = wait(taskpointer(tid))
+@inline function wait(p::Ptr{UInt})
     # note: based on relative values (SPIN = 0, WAIT = 1)
     # thus it should spin for as long as the task is doing anything else
     # while @show(stacktrace(), reinterpret(UInt, _atomic_load(p))) > reinterpret(UInt, WAIT)
-    while reinterpret(UInt, _atomic_load(p)) > reinterpret(UInt, WAIT)
+    while _atomic_load(p) > reinterpret(UInt, WAIT)
+    # while reinterpret(UInt, @show(_atomic_load(p))) > reinterpret(UInt, WAIT)
         pause()
     end
 end

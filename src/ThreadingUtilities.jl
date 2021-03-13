@@ -7,8 +7,6 @@ using VectorizationBase:
     SPIN = 0   # 0: spinning
     WAIT = 1   # 1: waiting, check if ≤ 1 to see if task is free and waiting
     TASK = 2   # 2: task available
-    LOCK = 3   # 3: lock
-    STUP = 4   # 4: problem being setup. Any reason to have two lock flags?
 end
 const TASKS = Task[]
 const THREADBUFFERSIZE = 512
