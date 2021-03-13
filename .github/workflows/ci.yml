@@ -40,12 +40,12 @@ jobs:
         exclude:
           - os: macOS-latest
             arch: x86 # 32-bit Julia binaries are not available on macOS
-        include:
-          - exclusive: 'true'
-            threads: '2'
-            arch: x64
-            os: ubuntu-latest
-            version: '1'
+        #include:
+        #  - exclusive: 'true'
+        #    threads: '2'
+        #    arch: x64
+        #    os: ubuntu-latest
+        #    version: '1'
     steps:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1
