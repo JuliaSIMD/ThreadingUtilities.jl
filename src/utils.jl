@@ -81,7 +81,6 @@ end
 end
 
 @generated function load(p::Ptr{UInt}, ::Type{T}, i) where {T<:Tuple}
-    isbitstype(T) || return :(i + $(sizeof(T)), load(p + i, $T))
     q = Expr(:block, Expr(:meta,:inline))
     tup = Expr(:tuple)
     for (i,t) ∈ enumerate(T.parameters)
@@ -92,12 +91,11 @@ end
     push!(q.args, :(i, $tup))
     q
 end
-@generated store!(p::Ptr{UInt}, tup::T, i) where {T<:Tuple} = isbitstype(T) ? :(_store!(p, tup, i)) : :(store!(p+i, tup); i + sizeof(tup))
-@inline function _store!(p::Ptr{UInt}, tup::Tuple{A,B,Vararg{Any,N}}, i) where {A,B,N}
+@inline function store!(p::Ptr{UInt}, tup::Tuple{A,B,Vararg{Any,N}}, i) where {A,B,N}
     i = store!(p, first(tup), i)
-    _store!(p, Base.tail(tup), i)
+    store!(p, Base.tail(tup), i)
 end
-@inline function _store!(p::Ptr{UInt}, tup::Tuple{A}, i) where {A}
+@inline function store!(p::Ptr{UInt}, tup::Tuple{A}, i) where {A}
     store!(p, first(tup), i)
 end
 @inline store!(p::Ptr{UInt}, tup::Tuple{}, i) = i
