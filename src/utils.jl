@@ -91,12 +91,11 @@ end
     push!(q.args, :(i, $tup))
     q
 end
-@generated store!(p::Ptr{UInt}, tup::T, i) where {T<:Tuple} = :(_store!(p, tup, i))
-@inline function _store!(p::Ptr{UInt}, tup::Tuple{A,B,Vararg{Any,N}}, i) where {A,B,N}
+@inline function store!(p::Ptr{UInt}, tup::Tuple{A,B,Vararg{Any,N}}, i) where {A,B,N}
     i = store!(p, first(tup), i)
-    _store!(p, Base.tail(tup), i)
+    store!(p, Base.tail(tup), i)
 end
-@inline function _store!(p::Ptr{UInt}, tup::Tuple{A}, i) where {A}
+@inline function store!(p::Ptr{UInt}, tup::Tuple{A}, i) where {A}
     store!(p, first(tup), i)
 end
 @inline store!(p::Ptr{UInt}, tup::Tuple{}, i) = i
