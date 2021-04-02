@@ -10,7 +10,7 @@ end
     :(@cfunction($c, Cvoid, (Ptr{UInt},)))
 end
 
-function setup_mul_svector!(p, y::Base.RefValue{T}, x::Base.RefValue{T}) where {T}
+@inline function setup_mul_svector!(p, y::Base.RefValue{T}, x::Base.RefValue{T}) where {T}
     py = Base.unsafe_convert(Ptr{T}, y)
     px = Base.unsafe_convert(Ptr{T}, x)
     fptr = mul_staticarray_ptr(py, px)
@@ -19,9 +19,7 @@ function setup_mul_svector!(p, y::Base.RefValue{T}, x::Base.RefValue{T}) where {
 end
 
 @inline function launch_thread_mul_svector(tid, y, x)
-    ThreadingUtilities.launch(tid, y, x) do p, y, x
-        setup_mul_svector!(p, y, x)
-    end
+    ThreadingUtilities.launch(setup_mul_svector!, tid, y, x)
 end
 
 function mul_svector_threads(a::T, b::T, c::T) where {T}
