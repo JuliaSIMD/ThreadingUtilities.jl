@@ -10,9 +10,9 @@ end
     :(@cfunction($c, Cvoid, (Ptr{UInt},)))
 end
 
-function setup_mul_svector!(p, y::Base.RefValue{SVector{N,T}}, x::Base.RefValue{SVector{N,T}}) where {N,T}
-    py = Base.unsafe_convert(Ptr{SVector{N,T}}, y)
-    px = Base.unsafe_convert(Ptr{SVector{N,T}}, x)
+function setup_mul_svector!(p, y::Base.RefValue{T}, x::Base.RefValue{T}) where {T}
+    py = Base.unsafe_convert(Ptr{T}, y)
+    px = Base.unsafe_convert(Ptr{T}, x)
     fptr = mul_staticarray_ptr(py, px)
     offset = ThreadingUtilities.store!(p, fptr, sizeof(UInt))
     ThreadingUtilities.store!(p, (py,px), offset)
@@ -24,13 +24,13 @@ end
     end
 end
 
-function mul_svector_threads(a::SVector{N,T}, b::SVector{N,T}, c::SVector{N,T}) where {N,T}
+function mul_svector_threads(a::T, b::T, c::T) where {T}
     ra = Ref(a)
     rb = Ref(b)
     rc = Ref(c)
-    rx = Ref{SVector{N,T}}()
-    ry = Ref{SVector{N,T}}()
-    rz = Ref{SVector{N,T}}()
+    rx = Ref{T}()
+    ry = Ref{T}()
+    rz = Ref{T}()
     GC.@preserve ra rb rc rx ry rz begin
         launch_thread_mul_svector(1, rx, ra)
         launch_thread_mul_svector(2, ry, rb)
@@ -53,5 +53,13 @@ end
     @test x == b*2.7
     @test y == c*2.7
     @test z ≈ muladd(2.7, a, b)
-end
+    A = @SMatrix rand(4,5);
+    B = @SMatrix rand(4,5);
+    C = @SMatrix rand(4,5);
 
+    W,X,Y,Z = mul_svector_threads(A, B, C)
+    @test W == A*2.7
+    @test X == B*2.7
+    @test Y == C*2.7
+    @test Z ≈ muladd(2.7, A, B)
+end
