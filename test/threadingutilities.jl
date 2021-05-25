@@ -53,7 +53,7 @@ end
 
 @testset "ThreadingUtilities.jl" begin
   for tid ∈ eachindex(ThreadingUtilities.TASKS)
-    @test unsafe_load(Ptr{UInt32}(ThreadingUtilities.taskpointer(tid))) == 0x00000002
+    @test unsafe_load(Ptr{UInt32}(ThreadingUtilities.taskpointer(tid))) == 0x00000001
   end
   @test all(eachindex(ThreadingUtilities.TASKS)) do tid
     ThreadingUtilities.load(ThreadingUtilities.taskpointer(tid), ThreadingUtilities.ThreadState) === ThreadingUtilities.WAIT
@@ -67,8 +67,8 @@ end
   GC.@preserve x begin
     ThreadingUtilities._atomic_store!(pointer(x), zero(UInt))
     @test ThreadingUtilities._atomic_xchg!(pointer(x), ThreadingUtilities.WAIT) == ThreadingUtilities.TASK
+    @test ThreadingUtilities._atomic_umax!(pointer(x), ThreadingUtilities.TASK) == ThreadingUtilities.WAIT
     @test ThreadingUtilities._atomic_umax!(pointer(x), ThreadingUtilities.SPIN) == ThreadingUtilities.WAIT
-    @test ThreadingUtilities._atomic_umax!(pointer(x), ThreadingUtilities.EXEC) == ThreadingUtilities.SPIN
     @test ThreadingUtilities.load(pointer(x), ThreadingUtilities.ThreadState) == ThreadingUtilities.SPIN
   end
   for tid ∈ eachindex(ThreadingUtilities.TASKS)

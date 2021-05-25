@@ -4,10 +4,9 @@ using VectorizationBase:
     pause, StaticInt, StridedPointer, stridedpointer, offsets, cache_linesize, align, __vload, __vstore!, num_threads, assume, False, register_size, NativeTypes
 
 @enum ThreadState::UInt32 begin
-  TASK = 0   # 3: task available
-  EXEC = 1   # 2: task executed
-  WAIT = 2   # 1: waiting
-  SPIN = 3   # 0: spinning
+  TASK = 0   # 0: task available
+  WAIT = 1   # 1: waiting
+  SPIN = 2   # 2: spinning
 end
 const TASKS = Task[]
 const THREADBUFFERSIZE = 512
