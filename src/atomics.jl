@@ -44,13 +44,13 @@ for op ∈ ["xchg", "add", "sub", "and", "nand", "or", "xor", "max", "min", "uma
     end
     @eval begin
         @inline function $f(ptr::Ptr{UInt}, x::ThreadState)
-            reinterpret(ThreadState, $f(ptr, reinterpret(UInt, x)))
+            reinterpret(ThreadState, $f(reinterpret(Ptr{UInt32}, ptr), reinterpret(UInt32, x)))
         end
     end
 end
-@inline _atomic_state(ptr::Ptr{UInt}) = reinterpret(ThreadState, _atomic_load(ptr))
-@inline _atomic_store!(ptr::Ptr{UInt}, x::ThreadState) = _atomic_store!(ptr, reinterpret(UInt, x))
+@inline _atomic_state(ptr::Ptr{UInt}) = reinterpret(ThreadState, _atomic_load(reinterpret(Ptr{UInt32}, ptr)))
+@inline _atomic_store!(ptr::Ptr{UInt}, x::ThreadState) = _atomic_store!(reinterpret(Ptr{UInt32}, ptr), reinterpret(UInt32, x))
 @inline function _atomic_cas_cmp!(ptr::Ptr{UInt}, cmp::ThreadState, newval::ThreadState)
-    _atomic_cas_cmp!(ptr, reinterpret(UInt, cmp), reinterpret(UInt, newval))
+    _atomic_cas_cmp!(reinterpret(Ptr{UInt32}, ptr), reinterpret(UInt32, cmp), reinterpret(UInt32, newval))
 end
 
