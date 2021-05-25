@@ -49,7 +49,6 @@ for op ∈ ["xchg", "add", "sub", "and", "nand", "or", "xor", "max", "min", "uma
     end
 end
 @inline _atomic_state(ptr::Ptr{UInt}) = reinterpret(ThreadState, _atomic_load(reinterpret(Ptr{UInt32}, ptr)))
-@inline _atomic_state(tid::Integer) = _atomic_state(taskpointer(tid))
 @inline _atomic_store!(ptr::Ptr{UInt}, x::ThreadState) = _atomic_store!(reinterpret(Ptr{UInt32}, ptr), reinterpret(UInt32, x))
 @inline function _atomic_cas_cmp!(ptr::Ptr{UInt}, cmp::ThreadState, newval::ThreadState)
     _atomic_cas_cmp!(reinterpret(Ptr{UInt32}, ptr), reinterpret(UInt32, cmp), reinterpret(UInt32, newval))
