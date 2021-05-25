@@ -22,6 +22,14 @@ end
     ThreadingUtilities.launch(setup_mul_svector!, tid, y, x)
 end
 
+function waste_time(a, b)
+  s = a * b'
+  for i ∈ 1:00
+    s += a * b'
+  end
+  s
+end
+
 function mul_svector_threads(a::T, b::T, c::T) where {T}
     ra = Ref(a)
     rb = Ref(b)
@@ -33,12 +41,12 @@ function mul_svector_threads(a::T, b::T, c::T) where {T}
         launch_thread_mul_svector(1, rx, ra)
         launch_thread_mul_svector(2, ry, rb)
         launch_thread_mul_svector(3, rz, rc)
-        w = muladd.(2.7, a, b)
+        w = waste_time(a, b)
         ThreadingUtilities.wait(1)
         ThreadingUtilities.wait(2)
         ThreadingUtilities.wait(3)
     end
-    rx[],ry[],rz[],w
+    rx[], ry[], rz[], w
 end
 
 @testset "SVector Test" begin
@@ -50,11 +58,11 @@ end
   @test w == a*2.7
   @test x == b*2.7
   @test y == c*2.7
-  @test z ≈ muladd(2.7, a, b)
-  A = @SMatrix rand(4,5);
-  B = @SMatrix rand(4,5);
-  C = @SMatrix rand(4,5);
-  Wans = A*2.7; Xans = B*2.7; Yans = C*2.7; Zans = muladd(2.7, A, B);
+  @test z ≈ waste_time(a, b)
+  A = @SMatrix rand(7,9);
+  B = @SMatrix rand(7,9);
+  C = @SMatrix rand(7,9);
+  Wans = A*2.7; Xans = B*2.7; Yans = C*2.7; Zans = waste_time(A, B)
   for i ∈ 1:100 # repeat rapdily
     W,X,Y,Z = mul_svector_threads(A, B, C)
     @test W == Wans

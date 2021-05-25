@@ -65,13 +65,10 @@ end
     _call(p)
     store!(p, SPIN)
     return
-  elseif reinterpret(UInt32, s) > 0x00000001
-    return
   end
   counter = 0x00000000
-  while true
+  while _atomic_state(p) == EXEC
     pause()
-    s = _atomic_state(p) == EXEC || return
     ((counter += 0x00000001) > 0x00010000) && yield()
   end
 end
