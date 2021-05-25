@@ -1,9 +1,9 @@
 using StaticArrays, ThreadingUtilities
 struct MulStaticArray{P} end
 function (::MulStaticArray{P})(p::Ptr{UInt}) where {P}
-    _, (ptry,ptrx) = ThreadingUtilities.load(p, P, 2*sizeof(UInt))
-    unsafe_store!(ptry, unsafe_load(ptrx) * 2.7)
-    nothing
+  _, (ptry,ptrx) = ThreadingUtilities.load(p, P, 2*sizeof(UInt))
+  unsafe_store!(ptry, unsafe_load(ptrx) * 2.7)
+  nothing
 end
 @generated function mul_staticarray_ptr(::A, ::B) where {A,B}
     c = MulStaticArray{Tuple{A,B}}()
@@ -42,22 +42,24 @@ function mul_svector_threads(a::T, b::T, c::T) where {T}
 end
 
 @testset "SVector Test" begin
-    a = @SVector rand(16);
-    b = @SVector rand(16);
-    c = @SVector rand(16);
-    w,x,y,z = mul_svector_threads(a, b, c)
-    @test iszero(@allocated mul_svector_threads(a, b, c))
-    @test w == a*2.7
-    @test x == b*2.7
-    @test y == c*2.7
-    @test z ≈ muladd(2.7, a, b)
-    A = @SMatrix rand(4,5);
-    B = @SMatrix rand(4,5);
-    C = @SMatrix rand(4,5);
-
+  a = @SVector rand(16);
+  b = @SVector rand(16);
+  c = @SVector rand(16);
+  w,x,y,z = mul_svector_threads(a, b, c)
+  @test @allocated(mul_svector_threads(a, b, c)) == 0
+  @test w == a*2.7
+  @test x == b*2.7
+  @test y == c*2.7
+  @test z ≈ muladd(2.7, a, b)
+  A = @SMatrix rand(4,5);
+  B = @SMatrix rand(4,5);
+  C = @SMatrix rand(4,5);
+  Wans = A*2.7; Xans = B*2.7; Yans = C*2.7; Zans = muladd(2.7, A, B);
+  for i ∈ 1:100 # repeat rapdily
     W,X,Y,Z = mul_svector_threads(A, B, C)
-    @test W == A*2.7
-    @test X == B*2.7
-    @test Y == C*2.7
-    @test Z ≈ muladd(2.7, A, B)
+    @test W == Wans
+    @test X == Xans
+    @test Y == Yans
+    @test Z ≈ Zans
+  end
 end
