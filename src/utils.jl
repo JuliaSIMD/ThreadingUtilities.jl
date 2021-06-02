@@ -13,7 +13,7 @@ end
     Expr(:block, Expr(:meta,:inline), :(unsafe_store!(Base.unsafe_convert(Ptr{Ptr{Cvoid}}, p), Base.pointer_from_objref(v)); return nothing))
   end
 end
-offsetsize(::Type{T}) where {T} = Base.allocatedinline(T) ? sizeof(Int) : sizeof(T)
+offsetsize(::Type{T}) where {T} = Base.allocatedinline(T) ? sizeof(T) : sizeof(Int)
 
 function load_aggregate(::Type{T}, offset::Int) where {T}
   numfields = fieldcount(T)
