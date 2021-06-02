@@ -1,103 +1,88 @@
-# To add support for loading/storing...
-@inline function load(p::Ptr{UInt}, ::Type{T}) where {T<:NativeTypes}
-    __vload(Base.unsafe_convert(Ptr{T}, p), False(), register_size())
+@generated function load(p::Ptr{T}) where {T}
+  if Base.allocatedinline(T)
+    Expr(:block, Expr(:meta,:inline), :(unsafe_load(p)))
+  else
+    Expr(:block, Expr(:meta,:inline), :(ccall(:jl_value_ptr, Ref{$T}, (Ptr{Cvoid},), unsafe_load(Base.unsafe_convert(Ptr{Ptr{Cvoid}}, p)))))
+  end
 end
-@inline function load(p::Ptr{UInt}, ::Type{T}) where {T<:Union{Ptr,Core.LLVMPtr}}
-    reinterpret(T, __vload(p, False(), register_size()))
+@inline load(p::Ptr{UInt}, ::Type{T}) where {T} = load(reinterpret(Ptr{T}, p))
+@generated function store!(p::Ptr{T}, v::T) where {T}
+  if Base.allocatedinline(T)
+    Expr(:block, Expr(:meta,:inline), :(unsafe_store!(p, v); return nothing))
+  else
+    Expr(:block, Expr(:meta,:inline), :(unsafe_store!(Base.unsafe_convert(Ptr{Ptr{Cvoid}}, p), Base.pointer_from_objref(v)); return nothing))
+  end
 end
-# @inline function load(p::Ptr{UInt}, ::Type{T}) where {T<:NativeTypes}
-#     __vload(reinterpret(Core.LLVMPtr{T,0}, p), False(), register_size())
-# end
-# @inline function load(p::Ptr{UInt}, ::Type{T}) where {T<:Union{Ptr,Core.LLVMPtr}}
-#     reinterpret(T, __vload(reinterpret(Core.LLVMPtr{UInt,0}, p), False(), register_size()))
-# end
-@inline load(p::Ptr{UInt}, ::Type{T}) where {T} = unsafe_load(Base.unsafe_convert(Ptr{T}, p))
-@inline function store!(p::Ptr{UInt}, x::T) where {T <: Union{Ptr,Core.LLVMPtr}}
-    __vstore!(p, reinterpret(UInt, x), False(), False(), False(), register_size())
-end
-@inline function store!(p::Ptr{UInt}, x::T) where {T <: NativeTypes}
-    __vstore!(Base.unsafe_convert(Ptr{T}, p), x, False(), False(), False(), register_size())
-end
-# @inline function store!(p::Ptr{UInt}, x::T) where {T <: Union{Ptr,Core.LLVMPtr}}
-#     __vstore!(reinterpret(Core.LLVMPtr{UInt,0}, p), reinterpret(UInt, x), False(), False(), False(), register_size())
-# end
-# @inline function store!(p::Ptr{UInt}, x::T) where {T <: NativeTypes}
-#     __vstore!(reinterpret(Core.LLVMPtr{T,0}, p), x, False(), False(), False(), register_size())
-# end
-@inline store!(p::Ptr{UInt}, x::T) where {T} = (unsafe_store!(Base.unsafe_convert(Ptr{T}, p), x); nothing)
+offsetsize(::Type{T}) where {T} = Base.allocatedinline(T) ? sizeof(Int) : sizeof(T)
 
-@inline load(p::Ptr{UInt}, ::Type{StaticInt{N}}, i) where {N} = i, StaticInt{N}()
-@inline store!(p::Ptr{UInt}, ::StaticInt, i) = i
-
-
-
-
-
-@generated function load(p::Ptr{UInt}, ::Type{StridedPointer{T,N,C,B,R,X,O}}, i) where {T,N,C,B,R,X,O}
-    q = quote
-        $(Expr(:meta,:inline))
-        i, ptr = load(p, Ptr{$T}, i)
+function load_aggregate(::Type{T}, offset::Int) where {T}
+  numfields = fieldcount(T)
+  call = (T <: Tuple) ? Expr(:tuple) : Expr(:new, T)
+  for f ∈ 1:numfields
+    TF = fieldtype(T, f)
+    if Base.issingletontype(TF)
+      push!(call.args, TF.instance)
+    elseif fieldcount(TF) ≡ 0
+      if TF === UInt
+        push!(call.args, :(load(p + (offset + $offset))))
+      else
+        push!(call.args, :(load(reinterpret(Ptr{$TF}, p) + (offset + $offset))))
+      end
+      offset += offsetsize(TF)
+    else
+      arg, offset = load_aggregate(TF, offset)
+      push!(call.args, arg)
     end
-    xt = Expr(:tuple)
-    Xp = X.parameters
-    for n ∈ 1:N
-        x = Symbol(:x_,n)
-        push!(xt.args, x)
-        push!(q.args, :((i, $x) = load(p, $(Xp[n]), i)))
-    end
-    ot = Expr(:tuple)
-    Op = O.parameters
-    for n ∈ 1:N
-        o = Symbol(:o_,n)
-        push!(ot.args, o)
-        push!(q.args, :((i, $o) = load(p, $(Op[n]), i)))
-    end
-    push!(q.args, :((i, StridedPointer{$T,$N,$C,$B,$R}(ptr, $xt, $ot))))
-    q
+  end
+  return call, offset
 end
-@generated function store!(p::Ptr{UInt}, ptr::StridedPointer{T,N,C,B,R,X,O}, i) where {T,N,C,B,R,X,O}
-    q = quote
-        $(Expr(:meta,:inline))
-        i = store!(p, pointer(ptr), i)
-        strd = strides(ptr)
-        offs = offsets(ptr)
-    end
-    for n ∈ 1:N
-        push!(q.args, :(i = store!(p, strd[$n], i)))
-    end
-    for n ∈ 1:N
-        push!(q.args, :(i = store!(p, offs[$n], i)))
-    end
-    push!(q.args, :i)
-    q
+@generated function load(p::Ptr{UInt}, ::Type{T}, offset::Int) where {T}
+  if Base.issingletontype(T)
+    call = Expr(:tuple, :offset, T.instance)
+  elseif fieldcount(T) ≡ 0
+    ptr = :(p + offset)
+    ptr = T === UInt ? ptr : :(reinterpret(Ptr{$T}, $ptr))
+    call = :(((offset + $(offsetsize(T)), load($ptr))))
+  else
+    call, off = load_aggregate(T, 0)
+    call = Expr(:tuple, :(offset + $off), call)
+  end
+  Expr(:block, Expr(:meta,:inline), call)
 end
 
-@inline function load(p::Ptr{UInt}, ::Type{T}, i) where {T}
-    i + sizeof(T), load(p + i, T)
-end
-@inline function store!(p::Ptr{UInt}, x, i)
-    store!(p + i, x)
-    i + sizeof(x)
-end
-
-@generated function load(p::Ptr{UInt}, ::Type{T}, i) where {T<:Tuple}
-    q = Expr(:block, Expr(:meta,:inline))
-    tup = Expr(:tuple)
-    for (i,t) ∈ enumerate(T.parameters)
-        ln = Symbol(:l_,i)
-        push!(tup.args, ln)
-        push!(q.args, :((i,$ln) = load(p, $t, i)))
+function store_aggregate!(q::Expr, sym, ::Type{T}, offset::Int) where {T}
+  gf = GlobalRef(Core,:getfield)
+  for f ∈ 1:fieldcount(T)
+    TF = fieldtype(T, f)
+    Base.issingletontype(TF) && continue
+    gfcall = Expr(:call, gf, sym, f)
+    if fieldcount(TF) ≡ 0
+      if TF === UInt
+        push!(q.args, :(store!(p + (offset + $offset), $gfcall)))
+      else
+        push!(q.args, :(store!(reinterpret(Ptr{$TF}, p) + (offset + $offset), $gfcall)))
+      end
+      offset += offsetsize(TF)
+    else
+      newsym = gensym(sym)
+      push!(q.args, Expr(:(=), newsym, gfcall))
+      offset = store_aggregate!(q, newsym, TF, offset)
     end
-    push!(q.args, :(i, $tup))
-    q
+  end
+  return offset
 end
-@inline function store!(p::Ptr{UInt}, tup::Tuple{A,B,Vararg{Any,N}}, i) where {A,B,N}
-    i = store!(p, first(tup), i)
-    store!(p, Base.tail(tup), i)
+@generated function store!(p::Ptr{UInt}, x::T, offset::Int) where {T}
+  Base.issingletontype(T) && return :offset
+  body = Expr(:block, Expr(:meta,:inline))
+  if fieldcount(T) ≡ 0
+    ptr = :(p + offset)
+    ptr = T === UInt ? ptr : :(reinterpret(Ptr{$T}, $ptr))
+    push!(body.args, :(store!($ptr, x)))
+    off = offsetsize(T)
+  else
+    off = store_aggregate!(body, :x, T, 0)
+  end
+  push!(body.args, Expr(:call, +, :offset, off))
+  return body
 end
-@inline function store!(p::Ptr{UInt}, tup::Tuple{A}, i) where {A}
-    store!(p, first(tup), i)
-end
-@inline store!(p::Ptr{UInt}, tup::Tuple{}, i) = i
-@inline store!(p::Ptr{UInt}, tup::Nothing, i) = i
 
