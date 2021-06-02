@@ -23,11 +23,9 @@ function load_aggregate(::Type{T}, offset::Int) where {T}
     if Base.issingletontype(TF)
       push!(call.args, TF.instance)
     elseif fieldcount(TF) ≡ 0
-      if TF === UInt
-        push!(call.args, :(load(p + (offset + $offset))))
-      else
-        push!(call.args, :(load(reinterpret(Ptr{$TF}, p) + (offset + $offset))))
-      end
+      ptr = :(p + (offset + $offset))
+      ptr = TF === UInt ? ptr : :(reinterpret(Ptr{$TF}, $ptr))
+      push!(call.args, :(load($ptr)))
       offset += offsetsize(TF)
     else
       arg, offset = load_aggregate(TF, offset)
@@ -57,11 +55,9 @@ function store_aggregate!(q::Expr, sym, ::Type{T}, offset::Int) where {T}
     Base.issingletontype(TF) && continue
     gfcall = Expr(:call, gf, sym, f)
     if fieldcount(TF) ≡ 0
-      if TF === UInt
-        push!(q.args, :(store!(p + (offset + $offset), $gfcall)))
-      else
-        push!(q.args, :(store!(reinterpret(Ptr{$TF}, p) + (offset + $offset), $gfcall)))
-      end
+      ptr = :(p + (offset + $offset))
+      ptr = TF === UInt ? ptr : :(reinterpret(Ptr{$TF}, $ptr))
+      push!(q.args, :(store!($ptr, $gfcall)))
       offset += offsetsize(TF)
     else
       newsym = gensym(sym)

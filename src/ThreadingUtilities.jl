@@ -8,13 +8,9 @@ For use in spin-and-wait loops, like spinlocks.
 @inline pause() = ccall(:jl_cpu_pause, Cvoid, ())
 
 if VERSION ≥ v"1.6.0-DEV.674"
-  @inline function assume(b::Bool)::Cvoid
-    Base.llvmcall(("    declare void @llvm.assume(i1)\n\n    define void @entry(i8) alwaysinline {\n    top:\n        %b = trunc i8 %0 to i1\ncall void @llvm.assume(i1 %b)\nret void\n    }\n", "entry"), Cvoid, Tuple{Bool}, b)
-  end
+  @inline assume(b::Bool)::Cvoid = Base.llvmcall(("    declare void @llvm.assume(i1)\n\n    define void @entry(i8) alwaysinline {\n    top:\n        %b = trunc i8 %0 to i1\ncall void @llvm.assume(i1 %b)\nret void\n    }\n", "entry"), Cvoid, Tuple{Bool}, b)
 else
-  @inline function assume(b::Bool)::Cvoid
-    Base.llvmcall(("declare void @llvm.assume(i1)", "%b = trunc i8 %0 to i1\ncall void @llvm.assume(i1 %b)\nret void"), Cvoid, Tuple{Bool}, b)
-  end
+  @inline assume(b::Bool)::Cvoid = Base.llvmcall(("declare void @llvm.assume(i1)", "%b = trunc i8 %0 to i1\ncall void @llvm.assume(i1 %b)\nret void"), Cvoid, Tuple{Bool}, b)
 end
 
 @enum ThreadState::UInt32 begin
