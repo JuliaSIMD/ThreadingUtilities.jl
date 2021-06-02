@@ -42,10 +42,8 @@ function (tt::ThreadTask)()
 end
 
 # 1-based tid, pushes into task 2-nthreads()
-# function wake_thread!(tid::T) where {T <: Unsigned}
 @noinline function wake_thread!(_tid::T) where {T <: Integer}
   tid = _tid % Int
-  # store!(taskpointer(_tid), TASK)
   tidp1 = tid + one(tid)
   assume(unsigned(length(Base.Workqueues)) > unsigned(tid))
   assume(unsigned(length(TASKS)) > unsigned(tidp1))
