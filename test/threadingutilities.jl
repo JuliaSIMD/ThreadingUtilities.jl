@@ -44,7 +44,7 @@ function test_copy(tid, N = 100_000)
         ThreadingUtilities.wait(tid)
         launch_thread_copy!(tid, z, c)
         yield()
-        ThreadingUtilities.wait(tid)
+        ThreadingUtilities.wait(ThreadingUtilities.taskpointer(tid))
     end
     @test a == x
     @test b == y

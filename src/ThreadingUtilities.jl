@@ -1,5 +1,7 @@
 module ThreadingUtilities
 
+using ManualMemory: load, store!
+
 """
   pause()
 
@@ -26,7 +28,6 @@ const THREADPOOLPTR =  Ref{Ptr{UInt}}(C_NULL);
 
 include("atomics.jl")
 include("threadtasks.jl")
-include("utils.jl")
 include("warnings.jl")
 
 function initialize_task(tid::Int)
