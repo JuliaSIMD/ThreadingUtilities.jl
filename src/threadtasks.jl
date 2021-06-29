@@ -52,13 +52,12 @@ end
 end
 
 # 1-based tid
-@inline wait(tid::Integer) = wait(taskpointer(tid), tid)
-@inline wait(p::Ptr{UInt}) = wait(p, (reinterpret(Int, p) - reinterpret(Int, THREADPOOLPTR[])) ÷ (THREADBUFFERSIZE))
-@inline function wait(p::Ptr{UInt}, tid::Integer)
+@inline wait(tid::Integer) = wait(taskpointer(tid))
+@inline function wait(p::Ptr{UInt})
   counter = 0x00000000
   while _atomic_state(p) == TASK
     pause()
-    ((counter += 0x00000001) > 0x00010000) && yield(TASKS[tid])
+    ((counter += 0x00000001) > 0x00010000) && yield()
   end
 end
 
