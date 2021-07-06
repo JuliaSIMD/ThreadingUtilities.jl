@@ -38,13 +38,13 @@ function test_copy(tid, N = 100_000)
     GC.@preserve a b c x y z begin
         launch_thread_copy!(tid, x, a)
         yield()
-        ThreadingUtilities.wait(tid)
+        @assert !ThreadingUtilities.wait(tid)
         launch_thread_copy!(tid, y, b)
         yield()
-        ThreadingUtilities.wait(tid)
+        @assert !ThreadingUtilities.wait(tid)
         launch_thread_copy!(tid, z, c)
         yield()
-        ThreadingUtilities.wait(tid)
+        @assert !ThreadingUtilities.wait(ThreadingUtilities.taskpointer(tid))
     end
     @test a == x
     @test b == y
@@ -76,7 +76,7 @@ end
   end
   yield()
   @test all(istaskfailed, ThreadingUtilities.TASKS)
-  ThreadingUtilities.reinitialize_tasks!(false)
+  @test all(ThreadingUtilities.wait, eachindex(ThreadingUtilities.TASKS))
   @test !any(istaskfailed, ThreadingUtilities.TASKS)
   # test copy on the reinitialized tasks
   foreach(test_copy, eachindex(ThreadingUtilities.TASKS))
