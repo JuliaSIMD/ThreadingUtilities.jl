@@ -51,13 +51,27 @@ end
   ccall(:jl_wakeup_thread, Cvoid, (Int16,), tid % Int16)
 end
 
+@noinline function checktask(tid)
+  t = TASKS[tid]
+  if istaskfailed(t)
+    dump(t)
+    initialize_task(tid)
+    return true
+  end
+  yield()
+  false
+end
 # 1-based tid
-@inline wait(tid::Integer) = wait(taskpointer(tid))
-@inline function wait(p::Ptr{UInt})
+@inline wait(tid::Integer) = wait(taskpointer(tid), tid)
+@inline wait(p::Ptr{UInt}) = wait(p, (p - THREADPOOLPTR[]) ÷ (THREADBUFFERSIZE))
+@inline function wait(p::Ptr{UInt}, tid)
   counter = 0x00000000
   while _atomic_state(p) == TASK
     pause()
-    ((counter += 0x00000001) > 0x00010000) && yield()
+    if ((counter += 0x00000001) > 0x00010000)
+      checktask(tid) && return true
+    end
   end
+  false
 end
 

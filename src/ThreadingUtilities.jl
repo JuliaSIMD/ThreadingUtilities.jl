@@ -30,21 +30,13 @@ include("atomics.jl")
 include("threadtasks.jl")
 include("warnings.jl")
 
-function initialize_task(tid::Int)
+function initialize_task(tid)
   _atomic_store!(taskpointer(tid), WAIT)
   t = Task(ThreadTask(taskpointer(tid)));
   t.sticky = true # create and pin
   # set to tid, we have tasks 2...nthread, from 1-based ind perspective
   ccall(:jl_set_task_tid, Cvoid, (Any, Cint), t, tid % Cint)
   TASKS[tid] = t
-end
-function reinitialize_tasks!(verbose::Bool = true)
-  for (tid,t) ∈ enumerate(TASKS)
-    if istaskfailed(t)
-      verbose && dump(t)
-      initialize_task(tid)
-    end
-  end
 end
 
 function __init__()
