@@ -52,12 +52,14 @@ function __init__()
   THREADPOOLPTR[] = reinterpret(Ptr{UInt}, (reinterpret(UInt, pointer(THREADPOOL))+LINESPACING-1) & (-LINESPACING)) - THREADBUFFERSIZE
   resize!(TASKS, nt)
   foreach(initialize_task, 1:nt)
-  if Sys.WORD_SIZE == 32 && nt > 0
-    fptr = @cfunction(retnothing, Cvoid, (Ptr{UInt},))
-    store!(taskpointer(1), fptr, sizeof(UInt))
-    _atomic_xchg!(taskpointer(1), TASK)
-    wake_thread!(1)
-    wait(1)
+  @static if Sys.WORD_SIZE == 32
+    if nt > 0
+      fptr = @cfunction(retnothing, Cvoid, (Ptr{UInt},))
+      store!(taskpointer(1), fptr, sizeof(UInt))
+      _atomic_xchg!(taskpointer(1), TASK)
+      wake_thread!(1)
+      wait(1)
+    end
   end
 end
 
