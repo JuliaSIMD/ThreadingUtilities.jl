@@ -1,54 +1,50 @@
 struct Copy{P} end
 function (::Copy{P})(p::Ptr{UInt}) where {P}
-    _, (ptry,ptrx,N) = ThreadingUtilities.load(p, P, 2*sizeof(UInt))
-    N > 0 || throw("This function throws if N == 0 for testing purposes.")
-    @simd ivdep for n ∈ 1:N
-        vstore!(ptry, vload(ptrx, (n,)), (n,))
-    end
+  _, (ptry,ptrx,N) = ThreadingUtilities.load(p, P, 2*sizeof(UInt))
+  N > 0 || throw("This function throws if N == 0 for testing purposes.")
+  @simd ivdep for n ∈ 1:N
+    vstore!(ptry, vload(ptrx, (n,)), (n,))
+  end
 end
 @generated function copy_ptr(::A, ::B) where {A,B}
-    c = Copy{Tuple{A,B,Int}}()
-    quote
-        @cfunction($c, Cvoid, (Ptr{UInt},))
-    end
+  c = Copy{Tuple{A,B,Int}}()
+  quote
+    @cfunction($c, Cvoid, (Ptr{UInt},))
+  end
 end
 function setup_copy!(p, y, x)
-    N = length(y)
-    @assert length(x) == N
-    py = stridedpointer(y)
-    px = stridedpointer(x)
-    fptr = copy_ptr(py, px)
-    offset = ThreadingUtilities.store!(p, fptr, sizeof(UInt))
-    ThreadingUtilities.store!(p, (py,px,N), offset)
+  N = length(y)
+  @assert length(x) == N
+  py = stridedpointer(y)
+  px = stridedpointer(x)
+  fptr = copy_ptr(py, px)
+  offset = ThreadingUtilities.store!(p, fptr, sizeof(UInt))
+  ThreadingUtilities.store!(p, (py,px,N), offset)
 end
 
-@inline function launch_thread_copy!(tid, y, x)
-    ThreadingUtilities.launch(tid, y, x) do p, y, x
-        setup_copy!(p, y, x)
-    end
-end
+@inline launch_thread_copy!(tid, y, x) = ThreadingUtilities.launch(setup_copy!, tid, y, x)
 
 function test_copy(tid, N = 100_000)
-    a = rand(N);
-    b = rand(N);
-    c = rand(N);
-    x = similar(a) .= NaN;
-    y = similar(b) .= NaN;
-    z = similar(c) .= NaN;
-    GC.@preserve a b c x y z begin
-        launch_thread_copy!(tid, x, a)
-        yield()
-        @assert !ThreadingUtilities.wait(tid)
-        launch_thread_copy!(tid, y, b)
-        yield()
-        @assert !ThreadingUtilities.wait(tid)
-        launch_thread_copy!(tid, z, c)
-        yield()
-        @assert !ThreadingUtilities.wait(ThreadingUtilities.taskpointer(tid))
-    end
-    @test a == x
-    @test b == y
-    @test c == z
+  a = rand(N);
+  b = rand(N);
+  c = rand(N);
+  x = similar(a) .= NaN;
+  y = similar(b) .= NaN;
+  z = similar(c) .= NaN;
+  GC.@preserve a b c x y z begin
+    launch_thread_copy!(tid, x, a)
+    yield()
+    @assert !ThreadingUtilities.wait(tid)
+    launch_thread_copy!(tid, y, b)
+    yield()
+    @assert !ThreadingUtilities.wait(tid)
+    launch_thread_copy!(tid, z, c)
+    yield()
+    @assert !ThreadingUtilities.wait(ThreadingUtilities.taskpointer(tid))
+  end
+  @test a == x
+  @test b == y
+  @test c == z
 end
 
 @testset "ThreadingUtilities.jl" begin

@@ -56,6 +56,7 @@ end
   if istaskfailed(t)
     display(t)
     dump(t)
+    println()
     initialize_task(tid)
     return true
   end
