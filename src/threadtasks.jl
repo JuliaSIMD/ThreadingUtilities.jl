@@ -20,8 +20,10 @@ end
 
 function (tt::ThreadTask)()
   p = pointer(tt)
-  max_wait = one(UInt32) << 20
-  wait_counter = max_wait
+  # max_wait = one(UInt32) << 14
+  # wait_counter = max_wait
+  max_back = 0x00000040
+  back = max_back
   GC.@preserve THREADPOOL begin
     while true
       if _atomic_state(p) == TASK
@@ -29,12 +31,19 @@ function (tt::ThreadTask)()
         _call(p)
         # store!(p, SPIN)
         _atomic_store!(p, SPIN)
-        wait_counter = zero(UInt32)
+        # wait_counter = zero(UInt32)
+        back = 0x00000001
         continue
       end
-      pause()
-      if (wait_counter += one(UInt32)) > max_wait
-        wait_counter = zero(UInt32)
+      i = back
+      while i ≠ 0x00000000
+        pause()
+        i -= 0x00000001
+      end
+      # if (wait_counter += one(UInt32)) > max_wait
+      # if (back += back) > max_back
+      if (back += 0x00000001) > max_back
+        back = 0x00000001
         _atomic_cas_cmp!(p, SPIN, WAIT) && Base.wait()
       end
     end
