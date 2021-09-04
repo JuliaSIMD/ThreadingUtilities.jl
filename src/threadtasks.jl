@@ -75,11 +75,26 @@ end
 # 1-based tid
 @inline wait(tid::Integer) = wait(taskpointer(tid), tid)
 @inline wait(p::Ptr{UInt}) = wait(p, (p - THREADPOOLPTR[]) ÷ (THREADBUFFERSIZE))
+# @inline function wait(p::Ptr{UInt}, tid)
+#   counter = 0x00000000
+#   while _atomic_state(p) == TASK
+#     pause()
+#     if ((counter += 0x00000001) > 0x00010000)
+#       checktask(tid) && return true
+#     end
+#   end
+#   false
+# end
 @inline function wait(p::Ptr{UInt}, tid)
-  counter = 0x00000000
+  backoff = 0x00000001
   while _atomic_state(p) == TASK
-    pause()
-    if ((counter += 0x00000001) > 0x00010000)
+    i = backoff
+    while i ≠ 0x00000000
+      pause()
+      i -= 0x00000001
+    end
+    if ((backoff += 0x00000001) > 0x00000040)
+      backoff = 0x00000040
       checktask(tid) && return true
     end
   end
