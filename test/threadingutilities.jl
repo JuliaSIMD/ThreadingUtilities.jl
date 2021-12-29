@@ -3,7 +3,7 @@ function (::Copy{P})(p::Ptr{UInt}) where {P}
   _, (ptry,ptrx,N) = ThreadingUtilities.load(p, P, 2*sizeof(UInt))
   N > 0 || throw("This function throws if N == 0 for testing purposes.")
   @simd ivdep for n ∈ 1:N
-    vstore!(ptry, vload(ptrx, (n,)), (n,))
+    unsafe_store!(ptry, unsafe_load(ptrx, n), n)
   end
 end
 @generated function copy_ptr(::A, ::B) where {A,B}
@@ -15,8 +15,8 @@ end
 function setup_copy!(p, y, x)
   N = length(y)
   @assert length(x) == N
-  py = stridedpointer(y)
-  px = stridedpointer(x)
+  py = pointer(y)
+  px = pointer(x)
   fptr = copy_ptr(py, px)
   offset = ThreadingUtilities.store!(p, fptr, sizeof(UInt))
   ThreadingUtilities.store!(p, (py,px,N), offset)

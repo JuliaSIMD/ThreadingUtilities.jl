@@ -25,9 +25,7 @@ function (tt::ThreadTask)()
   GC.@preserve THREADPOOL begin
     while true
       if _atomic_state(p) == TASK
-        # if _atomic_cas_cmp!(p, TASK, EXEC)
         _call(p)
-        # store!(p, SPIN)
         _atomic_store!(p, SPIN)
         wait_counter = zero(UInt32)
         continue
