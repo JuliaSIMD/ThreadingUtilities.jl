@@ -8,6 +8,7 @@ on:
       - 'README.md'
       - '.github/workflows/TagBot.yml'
   push:
+    tags: '*'
     branches:
       - master
     paths-ignore:
