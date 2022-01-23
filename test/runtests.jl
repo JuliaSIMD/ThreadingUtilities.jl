@@ -4,9 +4,7 @@ include("test-suite-preamble.jl")
 
 include("internals.jl")
 include("threadingutilities.jl")
-if (!parse(Bool, get(ENV, "GITHUB_ACTIONS", "false"))) && Threads.nthreads() > 3
-    include("staticarrays.jl")
-end
+include("staticarrays.jl")
 include("threadpool.jl")
 include("warnings.jl")
 
