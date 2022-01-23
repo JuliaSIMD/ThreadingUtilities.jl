@@ -4,7 +4,9 @@ include("test-suite-preamble.jl")
 
 include("internals.jl")
 include("threadingutilities.jl")
-include("staticarrays.jl")
+if Threads.nthreads() > 3
+  include("staticarrays.jl")
+end
 include("threadpool.jl")
 include("warnings.jl")
 
