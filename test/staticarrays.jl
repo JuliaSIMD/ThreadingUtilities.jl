@@ -3,6 +3,7 @@ struct MulStaticArray{P} end
 function (::MulStaticArray{P})(p::Ptr{UInt}) where {P}
   _, (ptry,ptrx) = ThreadingUtilities.load(p, P, 2*sizeof(UInt))
   unsafe_store!(ptry, unsafe_load(ptrx) * 2.7)
+  ThreadingUtilities._atomic_store!(p, ThreadingUtilities.SPIN)
   nothing
 end
 @generated function mul_staticarray_ptr(::A, ::B) where {A,B}
@@ -65,6 +66,7 @@ end
   Wans = A*2.7; Xans = B*2.7; Yans = C*2.7; Zans = waste_time(A, B)
   for i ∈ 1:100 # repeat rapdily
     W,X,Y,Z = mul_svector_threads(A, B, C)
+    iseven(i) && ThreadingUtilities.sleep_all_tasks()
     @test W == Wans
     @test X == Xans
     @test Y == Yans

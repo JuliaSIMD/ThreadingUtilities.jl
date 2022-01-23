@@ -26,7 +26,6 @@ function (tt::ThreadTask)()
     while true
       if _atomic_state(p) == TASK
         _call(p)
-        _atomic_store!(p, SPIN)
         wait_counter = zero(UInt32)
         continue
       end
@@ -36,6 +35,21 @@ function (tt::ThreadTask)()
         _atomic_cas_cmp!(p, SPIN, WAIT) && Base.wait()
       end
     end
+  end
+end
+
+function _sleep(p::Ptr{UInt})
+  _atomic_store!(p, WAIT)
+  Base.wait()
+  return nothing
+end
+
+function sleep_all_tasks()
+  for tid ∈ eachindex(TASKS)
+    fptr = @cfunction(_sleep, Cvoid, (Ptr{UInt},))
+    p = taskpointer(tid)
+    ThreadingUtilities.store!(p, fptr, sizeof(UInt))
+    _atomic_cas_cmp!(p, SPIN, TASK)
   end
 end
 
