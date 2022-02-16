@@ -40,9 +40,6 @@ function initialize_task(tid)
   return nothing
 end
 
-if Sys.WORD_SIZE == 32
-  retnothing(::Ptr{UInt}) = nothing
-end
 function __init__()
   _print_exclusivity_warning()
   sys_threads::Int = parse(Bool, get(ENV, "GITHUB_ACTIONS", "false")) ? Threads.nthreads() : (Sys.CPU_THREADS)::Int
