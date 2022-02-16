@@ -49,13 +49,17 @@ function mul_svector_threads(a::T, b::T, c::T) where {T}
     end
     rx[], ry[], rz[], w
 end
+function count_allocated(a, b, c)
+  @allocated(mul_svector_threads(a,b,c))
+end
+
 
 @testset "SVector Test" begin
   a = @SVector rand(16);
   b = @SVector rand(16);
   c = @SVector rand(16);
   w,x,y,z = mul_svector_threads(a, b, c)
-  @test @allocated(mul_svector_threads(a, b, c)) == 0
+  @test count_allocated(a, b, c)
   @test w == a*2.7
   @test x == b*2.7
   @test y == c*2.7
