@@ -13,7 +13,8 @@ end
 @inline function launch(f::F, tid::Integer, args::Vararg{Any,K}) where {F,K}
   p = taskpointer(tid)
   f(p, args...)
-  state = _atomic_xchg!(p, TASK) # exchange must happen atomically, to prevent it from switching to `WAIT` after reading
+  # exchange must happen atomically, to prevent it from switching to `WAIT` after reading
+  state = _atomic_xchg!(p, TASK)
   state == WAIT && wake_thread!(tid)
   return nothing
 end
