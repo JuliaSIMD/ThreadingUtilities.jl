@@ -40,27 +40,16 @@ function initialize_task(tid)
   return nothing
 end
 
-if Sys.WORD_SIZE == 32
-  retnothing(::Ptr{UInt}) = nothing
-end
 function __init__()
   _print_exclusivity_warning()
-  nt = min(Threads.nthreads(), (Sys.CPU_THREADS)::Int) - 1
+  sys_threads::Int = parse(Bool, get(ENV, "GITHUB_ACTIONS", "false")) ? Threads.nthreads() : (Sys.CPU_THREADS)::Int
+  nt = min(Threads.nthreads(), sys_threads) - 1
   resize!(THREADPOOL, (THREADBUFFERSIZE ÷ sizeof(UInt)) * nt + (LINESPACING ÷ sizeof(UInt)) - 1)
   copyto!(THREADPOOL, zero(UInt))
   # align to LINESPACING boundary, and then subtract THREADBUFFERSIZE to make the pointer 1-indexed
   THREADPOOLPTR[] = reinterpret(Ptr{UInt}, (reinterpret(UInt, pointer(THREADPOOL))+LINESPACING-1) & (-LINESPACING)) - THREADBUFFERSIZE
   resize!(TASKS, nt)
   foreach(initialize_task, 1:nt)
-  @static if Sys.WORD_SIZE == 32
-    if nt > 0
-      fptr = @cfunction(retnothing, Cvoid, (Ptr{UInt},))
-      store!(taskpointer(1), fptr, sizeof(UInt))
-      _atomic_xchg!(taskpointer(1), TASK)
-      wake_thread!(1)
-      wait(1)
-    end
-  end
 end
 
 end # module

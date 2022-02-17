@@ -13,7 +13,8 @@ end
 @inline function launch(f::F, tid::Integer, args::Vararg{Any,K}) where {F,K}
   p = taskpointer(tid)
   f(p, args...)
-  state = _atomic_xchg!(p, TASK) # exchange must happen atomically, to prevent it from switching to `WAIT` after reading
+  # exchange must happen atomically, to prevent it from switching to `WAIT` after reading
+  state = _atomic_xchg!(p, TASK)
   state == WAIT && wake_thread!(tid)
   return nothing
 end
@@ -26,7 +27,6 @@ function (tt::ThreadTask)()
     while true
       if _atomic_state(p) == TASK
         _call(p)
-        _atomic_store!(p, SPIN)
         wait_counter = zero(UInt32)
         continue
       end
@@ -36,6 +36,24 @@ function (tt::ThreadTask)()
         _atomic_cas_cmp!(p, SPIN, WAIT) && Base.wait()
       end
     end
+  end
+end
+
+function _sleep(p::Ptr{UInt})
+  _atomic_store!(p, WAIT)
+  Base.wait();
+  return nothing
+end
+
+function sleep_all_tasks()
+  fptr = @cfunction(_sleep, Cvoid, (Ptr{UInt},))
+  for tid ∈ eachindex(TASKS)
+    p = taskpointer(tid)
+    ThreadingUtilities.store!(p, fptr, sizeof(UInt))
+    _atomic_cas_cmp!(p, SPIN, TASK)
+  end
+  for tid ∈ eachindex(TASKS)
+    wait(tid)
   end
 end
 

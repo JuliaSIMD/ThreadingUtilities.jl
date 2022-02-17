@@ -5,6 +5,7 @@ function (::Copy{P})(p::Ptr{UInt}) where {P}
   @simd ivdep for n ∈ 1:N
     unsafe_store!(ptry, unsafe_load(ptrx, n), n)
   end
+  ThreadingUtilities._atomic_store!(p, ThreadingUtilities.SPIN)
 end
 @generated function copy_ptr(::A, ::B) where {A,B}
   c = Copy{Tuple{A,B,Int}}()

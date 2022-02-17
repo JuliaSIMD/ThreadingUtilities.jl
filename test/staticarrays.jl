@@ -1,8 +1,9 @@
-using StaticArrays, ThreadingUtilities
+using StaticArrays, ThreadingUtilities, BenchmarkTools
 struct MulStaticArray{P} end
 function (::MulStaticArray{P})(p::Ptr{UInt}) where {P}
   _, (ptry,ptrx) = ThreadingUtilities.load(p, P, 2*sizeof(UInt))
   unsafe_store!(ptry, unsafe_load(ptrx) * 2.7)
+  ThreadingUtilities._atomic_store!(p, ThreadingUtilities.SPIN)
   nothing
 end
 @generated function mul_staticarray_ptr(::A, ::B) where {A,B}
@@ -24,7 +25,7 @@ end
 
 function waste_time(a, b)
   s = a * b'
-  for i ∈ 1:00
+  for _ ∈ 1:0
     s += a * b'
   end
   s
@@ -48,13 +49,25 @@ function mul_svector_threads(a::T, b::T, c::T) where {T}
     end
     rx[], ry[], rz[], w
 end
+function count_allocated()
+  a = @SVector rand(16);
+  b = @SVector rand(16);
+  c = @SVector rand(16);
+  @ballocated(mul_svector_threads($a,$b,$c))
+end
+
 
 @testset "SVector Test" begin
   a = @SVector rand(16);
   b = @SVector rand(16);
   c = @SVector rand(16);
   w,x,y,z = mul_svector_threads(a, b, c)
-  @test @allocated(mul_svector_threads(a, b, c)) == 0
+  count_allocated()
+  if !Sys.iswindows()
+    @test count_allocated() == 0
+  else
+    @show count_allocated()
+  end
   @test w == a*2.7
   @test x == b*2.7
   @test y == c*2.7
@@ -62,12 +75,15 @@ end
   A = @SMatrix rand(7,9);
   B = @SMatrix rand(7,9);
   C = @SMatrix rand(7,9);
-  Wans = A*2.7; Xans = B*2.7; Yans = C*2.7; Zans = waste_time(A, B)
+  Wans = A*2.7; Xans = B*2.7; Yans = C*2.7;
   for i ∈ 1:100 # repeat rapdily
+    C, A, B = A, B, C
     W,X,Y,Z = mul_svector_threads(A, B, C)
+    iseven(i) && ThreadingUtilities.sleep_all_tasks()
+    (Yans, Wans, Xans) = Wans, Xans, Yans
     @test W == Wans
     @test X == Xans
     @test Y == Yans
-    @test Z ≈ Zans
+    @test Z ≈ waste_time(A, B)
   end
 end
