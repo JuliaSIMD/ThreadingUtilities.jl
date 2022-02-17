@@ -52,6 +52,9 @@ function sleep_all_tasks()
     ThreadingUtilities.store!(p, fptr, sizeof(UInt))
     _atomic_cas_cmp!(p, SPIN, TASK)
   end
+  for tid ∈ eachindex(TASKS)
+    wait(tid)
+  end
 end
 
 # 1-based tid, pushes into task 2-nthreads()
