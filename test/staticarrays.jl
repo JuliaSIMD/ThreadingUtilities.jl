@@ -25,7 +25,7 @@ end
 
 function waste_time(a, b)
   s = a * b'
-  for i ∈ 1:0
+  for _ ∈ 1:0
     s += a * b'
   end
   s
