@@ -59,17 +59,17 @@ end
   b = @SVector rand(16);
   c = @SVector rand(16);
   w,x,y,z = mul_svector_threads(a, b, c)
-  if Sys.iswindows()
-    # if VERSION < v"1.6" && Sys.WORD_SIZE == 32
-    if Sys.WORD_SIZE == 32
-      @show count_allocated(a, b, c)
-      @test count_allocated(a, b, c) == 0
-    else
-      @test_broken count_allocated(a, b, c) == 0
-    end
-  else
-    @test count_allocated(a, b, c) == 0
-  end
+  # if Sys.iswindows()
+  #   if VERSION < v"1.6" && Sys.WORD_SIZE == 32
+  #     @show count_allocated(a, b, c)
+  #     @test count_allocated(a, b, c) == 0
+  #   else
+  #     @test_broken count_allocated(a, b, c) == 0
+  #   end
+  # else
+  #   @test count_allocated(a, b, c) == 0
+  # end
+  @test count_allocated(a, b, c) == 0
   @test w == a*2.7
   @test x == b*2.7
   @test y == c*2.7
