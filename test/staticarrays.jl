@@ -1,4 +1,4 @@
-using StaticArrays, ThreadingUtilities
+using StaticArrays, ThreadingUtilities, BenchmarkTools
 struct MulStaticArray{P} end
 function (::MulStaticArray{P})(p::Ptr{UInt}) where {P}
   _, (ptry,ptrx) = ThreadingUtilities.load(p, P, 2*sizeof(UInt))
