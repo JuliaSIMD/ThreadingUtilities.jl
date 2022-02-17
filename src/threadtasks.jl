@@ -41,13 +41,13 @@ end
 
 function _sleep(p::Ptr{UInt})
   _atomic_store!(p, WAIT)
-  Base.wait()
+  Base.wait();
   return nothing
 end
 
 function sleep_all_tasks()
+  fptr = @cfunction(_sleep, Cvoid, (Ptr{UInt},))
   for tid ∈ eachindex(TASKS)
-    fptr = @cfunction(_sleep, Cvoid, (Ptr{UInt},))
     p = taskpointer(tid)
     ThreadingUtilities.store!(p, fptr, sizeof(UInt))
     _atomic_cas_cmp!(p, SPIN, TASK)
