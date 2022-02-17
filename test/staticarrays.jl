@@ -53,7 +53,7 @@ function count_allocated()
   a = @SVector rand(16);
   b = @SVector rand(16);
   c = @SVector rand(16);
-  @allocated(mul_svector_threads(a,b,c))
+  @ballocated(mul_svector_threads($a,$b,$c))
 end
 
 
