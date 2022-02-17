@@ -60,8 +60,10 @@ end
   c = @SVector rand(16);
   w,x,y,z = mul_svector_threads(a, b, c)
   if Sys.iswindows()
-    if VERSION < v"1.6" && Sys.WORD_SIZE == 32
+    # if VERSION < v"1.6" && Sys.WORD_SIZE == 32
+    if Sys.WORD_SIZE == 32
       @show count_allocated(a, b, c)
+      @test count_allocated(a, b, c) == 0
     else
       @test_broken count_allocated(a, b, c) == 0
     end
@@ -75,13 +77,15 @@ end
   A = @SMatrix rand(7,9);
   B = @SMatrix rand(7,9);
   C = @SMatrix rand(7,9);
-  Wans = A*2.7; Xans = B*2.7; Yans = C*2.7; Zans = waste_time(A, B)
+  Wans = A*2.7; Xans = B*2.7; Yans = C*2.7;
   for i ∈ 1:100 # repeat rapdily
+    C, A, B = A, B, C
     W,X,Y,Z = mul_svector_threads(A, B, C)
     iseven(i) && ThreadingUtilities.sleep_all_tasks()
+    (Yans, Wans, Xans) = Wans, Xans, Yans
     @test W == Wans
     @test X == Xans
     @test Y == Yans
-    @test Z ≈ Zans
+    @test Z ≈ waste_time(A, B)
   end
 end
