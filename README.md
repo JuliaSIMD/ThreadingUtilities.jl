@@ -12,3 +12,5 @@ Please see the [documentation](https://JuliaSIMD.github.io/ThreadingUtilities.jl
 
 If you're using Windows, please note that Windows often allocates memory when neither Mac or Linux do. I do not know why. If you can help diagnose/fix the problem, please take a look at `count_allocated()` in `/test/staticarrays.jl`.
 
+If you are trying to mix code relying on `ThreadingUtitlies.jl` (e.g. `LoopVectorization.jl`'s threaded code, `Polyester.jl`, or `Octavian.jl`) with other threaded code, you can use `ThreadingUtilities.sleep_all_tasks()` to put `ThreadingUtilities`'s tasks to sleep before switching from `ThreadingUtilities` to the other threaded code. Manually putting `ThreadingUtilities`'s tasks to sleep in this way should stop them from interfearing.
+
