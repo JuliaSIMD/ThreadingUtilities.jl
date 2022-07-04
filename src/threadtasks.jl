@@ -70,7 +70,7 @@ end
 @noinline function checktask(tid)
   t = TASKS[tid]
   if istaskfailed(t)
-    display(t)
+    show(stderr, MIME"text/plain"(), t)
     println()
     initialize_task(tid)
     return true
