@@ -71,7 +71,6 @@ end
   t = TASKS[tid]
   if istaskfailed(t)
     display(t)
-    dump(t)
     println()
     initialize_task(tid)
     return true
