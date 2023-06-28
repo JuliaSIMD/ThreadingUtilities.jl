@@ -3,7 +3,7 @@ struct ThreadTask
 end
 Base.pointer(tt::ThreadTask) = tt.p
 
-@inline taskpointer(tid::T) where {T} = THREADPOOLPTR[] + tid*(THREADBUFFERSIZE%T)
+@inline taskpointer(tid::T) where {T} = THREADPOOLPTR[] + tid * (THREADBUFFERSIZE % T)
 
 @inline function _call(p::Ptr{UInt})
   fptr = load(p + sizeof(UInt), Ptr{Cvoid})
@@ -23,25 +23,30 @@ function (tt::ThreadTask)()
   p = pointer(tt)
   max_wait = one(UInt32) << 20
   wait_counter = max_wait
-  GC.@preserve THREADPOOL begin
-    while true
-      if _atomic_state(p) == TASK
-        _call(p)
-        wait_counter = zero(UInt32)
-        continue
-      end
-      pause()
-      if (wait_counter += one(UInt32)) > max_wait
-        wait_counter = zero(UInt32)
-        _atomic_cas_cmp!(p, SPIN, WAIT) && Base.wait()
+  try
+    GC.@preserve THREADPOOL begin
+      while true
+        if _atomic_state(p) == TASK
+          _call(p)
+          wait_counter = zero(UInt32)
+          continue
+        end
+        pause()
+        if (wait_counter += one(UInt32)) > max_wait
+          wait_counter = zero(UInt32)
+          _atomic_cas_cmp!(p, SPIN, WAIT) && Base.wait()
+        end
       end
     end
+  catch
+    show(stderr, MIME"text/plain"(), Base.current_task())
+    println()
   end
 end
 
 function _sleep(p::Ptr{UInt})
   _atomic_store!(p, WAIT)
-  Base.wait();
+  Base.wait()
   return nothing
 end
 
@@ -58,7 +63,7 @@ function sleep_all_tasks()
 end
 
 # 1-based tid, pushes into task 2-nthreads()
-@noinline function wake_thread!(_tid::T) where {T <: Integer}
+@noinline function wake_thread!(_tid::T) where {T<:Integer}
   tid = _tid % Int
   tidp1 = tid + one(tid)
   assume(unsigned(length(Base.Workqueues)) > unsigned(tid))
@@ -70,8 +75,6 @@ end
 @noinline function checktask(tid)
   t = TASKS[tid]
   if istaskfailed(t)
-    show(stderr, MIME"text/plain"(), t)
-    println()
     initialize_task(tid)
     return true
   end
@@ -79,8 +82,9 @@ end
   false
 end
 # 1-based tid
+@inline tasktid(p::Ptr{UInt}) = (p - THREADPOOLPTR[]) ÷ (THREADBUFFERSIZE)
 @inline wait(tid::Integer) = wait(taskpointer(tid), tid)
-@inline wait(p::Ptr{UInt}) = wait(p, (p - THREADPOOLPTR[]) ÷ (THREADBUFFERSIZE))
+@inline wait(p::Ptr{UInt}) = wait(p, tasktid(p))
 @inline function wait(p::Ptr{UInt}, tid)
   counter = 0x00000000
   while _atomic_state(p) == TASK
