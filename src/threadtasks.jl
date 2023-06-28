@@ -38,9 +38,10 @@ function (tt::ThreadTask)()
         end
       end
     end
-  catch
-    show(stderr, MIME"text/plain"(), Base.current_task())
-    println()
+  catch err
+    showerror(stderr, err)
+    println(stderr)
+    rethrow(err)
   end
 end
 
