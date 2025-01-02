@@ -23,14 +23,28 @@ for (ityp,jtyp) ∈ [("i8", UInt8), ("i16", UInt16), ("i32", UInt32), ("i64", UI
         end
     end
 end
-for op ∈ ["xchg", "add", "sub", "and", "nand", "or", "xor", "max", "min", "umax", "umin"] # "fadd", "fsub"
+
+"""
+Operations supported by `atomicrmw`.
+
+- Julia v1.11 use [libLLVM-16](https://releases.llvm.org/16.0.0/docs/LangRef.html#atomicrmw-instruction)
+"""
+const atomicrmw_ops = [
+    "xchg", "add", "sub",
+    "and", "nand", "or", "xor",
+    "max", "min", "umax", "umin",
+    # "fadd", "fsub", 
+    # "fmax", "fmin",
+    # "uinc_wrap", "udec_wrap",  # Need LLVM 16: VERSION >= v"1.11"
+]
+for op ∈ atomicrmw_ops
     f = Symbol("_atomic_", op, '!')
     for (ityp,jtyp) ∈ [("i8", UInt8), ("i16", UInt16), ("i32", UInt32), ("i64", UInt64), ("i128", UInt128)]
         @eval begin
+            # Do inplace `$(op)` for `*ptr` and `x` atomically, return the old value of `*ptr`.
             @inline function $f(ptr::Ptr{$jtyp}, x::$jtyp)
                 Base.llvmcall($("""
-                  %p = inttoptr i$(8sizeof(Int)) %0 to $(ityp)*
-                  %v = atomicrmw $op $(ityp)* %p, $(ityp) %1 acq_rel
+                  %v = atomicrmw $(op) ptr %0, $(ityp) %1 acq_rel
                   ret $(ityp) %v
                 """), $jtyp, Tuple{Ptr{$jtyp}, $jtyp}, ptr, x)
             end
@@ -42,9 +56,9 @@ for op ∈ ["xchg", "add", "sub", "and", "nand", "or", "xor", "max", "min", "uma
         end
     end
 end
+
 @inline _atomic_state(ptr::Ptr{UInt}) = reinterpret(ThreadState, _atomic_load(reinterpret(Ptr{UInt32}, ptr)))
 @inline _atomic_store!(ptr::Ptr{UInt}, x::ThreadState) = _atomic_store!(reinterpret(Ptr{UInt32}, ptr), reinterpret(UInt32, x))
 @inline function _atomic_cas_cmp!(ptr::Ptr{UInt}, cmp::ThreadState, newval::ThreadState)
     _atomic_cas_cmp!(reinterpret(Ptr{UInt32}, ptr), reinterpret(UInt32, cmp), reinterpret(UInt32, newval))
 end
-
