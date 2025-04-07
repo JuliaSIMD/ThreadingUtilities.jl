@@ -71,7 +71,7 @@ end
   t = TASKS[tid]
   if istaskfailed(t)
     initialize_task(tid)
-    return true
+    throw(TaskFailedException(t))
   end
   yield()
   false
@@ -90,4 +90,3 @@ end
   end
   false
 end
-
