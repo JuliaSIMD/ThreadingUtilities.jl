@@ -85,7 +85,7 @@ end
   @test all(istaskfailed, ThreadingUtilities.TASKS)
   # Test that `wait` reports the error for each task
   for tid in eachindex(ThreadingUtilities.TASKS)
-    @test_throws "This function throws if N == 0 for testing purposes." ThreadingUtilities.wait(tid)
+    @test_throws TaskFailedException ThreadingUtilities.wait(tid)
   end
   # Test that none of the tasks are in the failed state
   @test !any(istaskfailed, ThreadingUtilities.TASKS)
