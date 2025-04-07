@@ -77,14 +77,18 @@ end
     @test ThreadingUtilities.load(pointer(x), ThreadingUtilities.ThreadState) ==
           ThreadingUtilities.SPIN
   end
+  # Make all tasks error
   for tid ∈ eachindex(ThreadingUtilities.TASKS)
     launch_thread_copy!(tid, Float64[], Float64[])
   end
   sleep(1)
   @test all(istaskfailed, ThreadingUtilities.TASKS)
-  @test all(ThreadingUtilities.wait, eachindex(ThreadingUtilities.TASKS))
+  # Test that `wait` reports the error for each task
+  for tid in eachindex(ThreadingUtilities.TASKS)
+    @test_throws "This function throws if N == 0 for testing purposes." ThreadingUtilities.wait(tid)
+  end
+  # Test that none of the tasks are in the failed state
   @test !any(istaskfailed, ThreadingUtilities.TASKS)
   # test copy on the reinitialized tasks
   foreach(test_copy, eachindex(ThreadingUtilities.TASKS))
 end
-
