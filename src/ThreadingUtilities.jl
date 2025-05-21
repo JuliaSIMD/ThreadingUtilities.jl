@@ -26,7 +26,7 @@ end
 end
 const TASKS = Task[]
 const LINESPACING = 256 # maximum cache-line size among contemporary CPUs.
-const THREADBUFFERSIZE = 512
+const THREADBUFFERSIZE = 1024
 const THREADPOOL = UInt[]
 const THREADPOOLPTR =  Ref{Ptr{UInt}}(C_NULL);
 
