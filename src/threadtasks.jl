@@ -76,6 +76,17 @@ end
   yield()
   false
 end
+
+# Like checktask, but without throwing errors.
+# This is used in Polyester.reset_threads!().
+@noinline function reinit_task(tid)
+  t = TASKS[tid]
+  if istaskfailed(t)
+    initialize_task(tid)
+  end
+  yield()
+end
+
 # 1-based tid
 @inline tasktid(p::Ptr{UInt}) = (p - THREADPOOLPTR[]) ÷ (THREADBUFFERSIZE)
 @inline wait(tid::Integer) = wait(taskpointer(tid), tid)
