@@ -26,37 +26,26 @@ jobs:
         arch:
           - x64
           - x86
-          - aarch64
         exclusive:
           - '0'
         os:
           - ubuntu-latest
           - windows-latest
-          - macos-latest  # Arm
+          - macos-13  # Intel
         threads:
           - '5'
         version:
           - '1.5'
           - '1'
         exclude:
-          - os: ubuntu-latest
-            arch: aarch64
-          - os: windows-latest
-            arch: aarch64
+          - os: macos-13
+            arch: x86 # 32-bit Julia binaries are not available on macOS
         include:
-          # 32-bit Julia binaries are not available on macOS (Intel)
-          # (macos-13, x64, v"1.5")
-          - arch: x64
+          - arch: aarch64
             exclusive: '0'
-            os: macos-13  # Intel
+            os: macos-latest  # Arm
             threads: '5'
-            version: '1.5'
-          # (macos-13, x64, v"1")
-          - arch: x64
-            exclusive: '0'
-            os: macos-13  # Intel
-            threads: '5'
-            version: '1'
+            version: '1'  # macos-latest (aarch64) need Julia >= v1.8+
           # (exclusive=1, threads=2)
           - arch: x64
             exclusive: '1'
