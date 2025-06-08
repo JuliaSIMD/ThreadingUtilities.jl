@@ -41,7 +41,7 @@ jobs:
             exclusive: '1'
             os: ubuntu-latest
             threads: '2'
-            version: '1.11'
+            version: 'nightly'
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2

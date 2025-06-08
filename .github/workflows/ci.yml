@@ -26,32 +26,43 @@ jobs:
         arch:
           - x64
           - x86
+          - aarch64
         exclusive:
           - '0'
         os:
           - ubuntu-latest
           - windows-latest
-          - macos-13  # Intel
+          - macos-latest  # Arm
         threads:
           - '5'
         version:
-          - '1.11'
-          # - '1'  # Use this when julia +1 > 1.11
+          - '1.5'
+          - '1'
         exclude:
-          - os: macos-13
-            arch: x86 # 32-bit Julia binaries are not available on macOS
+          - os: ubuntu-latest
+            arch: aarch64
+          - os: windows-latest
+            arch: aarch64
         include:
-          - arch: aarch64
+          # 32-bit Julia binaries are not available on macOS (Intel)
+          # (macos-13, x64, v"1.5")
+          - arch: x64
             exclusive: '0'
-            os: macOS-latest  # Arm
+            os: macos-13  # Intel
             threads: '5'
-            version: '1.11'
+            version: '1.5'
+          # (macos-13, x64, v"1")
+          - arch: x64
+            exclusive: '0'
+            os: macos-13  # Intel
+            threads: '5'
+            version: '1'
           # (exclusive=1, threads=2)
           - arch: x64
             exclusive: '1'
             os: ubuntu-latest
             threads: '2'
-            version: '1.11'
+            version: '1'
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2
