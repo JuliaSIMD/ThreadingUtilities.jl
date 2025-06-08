@@ -9,7 +9,7 @@ ManualMemory = "d125e4d3-2237-4719-b19c-fa641b8a4667"
 [compat]
 Aqua = "0.5"
 ManualMemory = "0.1.1"
-julia = "1.11"
+julia = "1.5"
 
 [extras]
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
