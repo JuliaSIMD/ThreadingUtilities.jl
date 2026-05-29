@@ -61,7 +61,11 @@ end
 @noinline function wake_thread!(_tid::T) where {T<:Integer}
   tid = _tid % Int
   tidp1 = tid + one(tid)
-  assume(unsigned(length(Base.Workqueues)) > unsigned(tid))
+  @static if VERSION >= v"1.13-"
+    assume(unsigned(length(Base.Workqueues())) > unsigned(tid))
+  else
+    assume(unsigned(length(Base.Workqueues)) > unsigned(tid))
+  end
   assume(unsigned(length(TASKS)) > unsigned(tidp1))
   @inbounds push!(Base.Workqueues[tidp1], TASKS[tid])
   ccall(:jl_wakeup_thread, Cvoid, (Int16,), tid % Int16)
