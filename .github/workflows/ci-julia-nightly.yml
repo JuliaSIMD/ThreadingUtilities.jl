@@ -15,6 +15,11 @@ on:
       - 'LICENSE.md'
       - 'README.md'
       - '.github/workflows/TagBot.yml'
+  # Julia nightly changes without any change here (e.g. new LLVM versions, see #66),
+  # so also test it regularly.
+  schedule:
+    - cron: '17 4 * * 1'  # weekly, Monday 04:17 UTC
+  workflow_dispatch:
 jobs:
   test-julia-nightly:
     timeout-minutes: 30
